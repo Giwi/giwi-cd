@@ -13,6 +13,7 @@ class Credential {
       privateKey: data.privateKey || '',
       passphrase: data.passphrase || '',
       description: data.description || '',
+      provider: data.provider || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -43,6 +44,7 @@ class Credential {
       privateKey: data.privateKey ?? existing.privateKey,
       passphrase: data.passphrase ?? existing.passphrase,
       description: data.description ?? existing.description,
+      provider: data.provider ?? existing.provider,
       updatedAt: new Date().toISOString()
     };
     db.get('credentials').find({ id }).assign(updated).write();

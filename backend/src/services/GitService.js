@@ -1,7 +1,7 @@
 const { exec } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 const os = require('os');
+const fs = require('fs');
 const Credential = require('../models/Credential');
 
 class GitService {
@@ -183,6 +183,54 @@ class GitService {
 
   getWorkspaceDir() {
     return this.workspaceDir;
+  }
+
+  async getRemoteCommit(repoUrl, branch, credentialId) {
+    if (!repoUrl) return null;
+
+    const isSSH = repoUrl.startsWith('git@') || repoUrl.includes(':');
+    let authUrl = repoUrl;
+
+    if (credentialId && !isSSH) {
+      const cred = Credential.getRaw(credentialId);
+      if (cred) {
+        authUrl = this._buildAuthUrl(repoUrl, cred);
+      }
+    }
+
+    return new Promise((resolve) => {
+      const cmd = `git ls-remote ${authUrl} refs/heads/${branch}`;
+      exec(cmd, { timeout: 60000 }, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[GitService] Failed to get remote commit for ${repoUrl}: ${error.message}`);
+          resolve(null);
+        } else {
+          const lines = stdout.trim().split('\n');
+          for (const line of lines) {
+            const parts = line.split('\t');
+            if (parts.length === 2 && parts[1] === `refs/heads/${branch}`) {
+              resolve(parts[0]);
+              return;
+            }
+          }
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  async getLocalCommit(workDir, branch) {
+    if (!workDir || !fs.existsSync(path.join(workDir, '.git'))) return null;
+
+    return new Promise((resolve) => {
+      exec(`git -C "${workDir}" rev-parse refs/heads/${branch}`, { timeout: 10000 }, (error, stdout) => {
+        if (error) {
+          resolve(null);
+        } else {
+          resolve(stdout.trim());
+        }
+      });
+    });
   }
 
   cleanup(ageMs = 24 * 60 * 60 * 1000) {

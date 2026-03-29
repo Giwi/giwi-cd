@@ -31,8 +31,13 @@ export interface Stage {
 }
 
 export interface Step {
+  type?: 'notification';
   name?: string;
-  command: string;
+  command?: string;
+  provider?: 'telegram' | 'slack' | 'teams' | 'mail';
+  credentialId?: string;
+  channel?: string;
+  message?: string;
   workingDir?: string;
   continueOnError?: boolean;
 }
@@ -105,7 +110,7 @@ export interface WebSocketMessage {
 export interface Credential {
   id: string;
   name: string;
-  type: 'username-password' | 'token' | 'ssh-key';
+  type: 'username-password' | 'token' | 'ssh-key' | 'telegram' | 'slack' | 'teams' | 'mail';
   username?: string;
   password?: string;
   token?: string;

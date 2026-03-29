@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
@@ -19,58 +19,85 @@ import { AuthService } from './services/auth.service';
     } @else if (!authService.isAuthenticated()) {
       <router-outlet></router-outlet>
     } @else {
-      <div class="app-wrapper">
+      <div class="app-wrapper" [class.sidebar-collapsed]="sidebarCollapsed()">
         <aside class="sidebar">
           <div class="sidebar-brand">
             <i class="bi bi-stack brand-icon"></i>
-            <div>
-              <span class="brand-name">GiwiCD</span>
-              <div class="brand-version">v1.0.0</div>
-            </div>
+            @if (!sidebarCollapsed()) {
+              <div>
+                <span class="brand-name">GiwiCD</span>
+                <div class="brand-version">v1.0.0</div>
+              </div>
+            }
           </div>
           
           <nav class="sidebar-nav">
-            <div class="nav-section">Overview</div>
-            <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+            @if (!sidebarCollapsed()) {
+              <div class="nav-section">Overview</div>
+            }
+            <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Dashboard' : ''">
               <i class="bi bi-grid-1x2"></i>
-              Dashboard
+              @if (!sidebarCollapsed()) {
+                Dashboard
+              }
             </a>
             
-            <div class="nav-section">Pipelines</div>
-            <a class="nav-item" routerLink="/pipelines" routerLinkActive="active">
+            @if (!sidebarCollapsed()) {
+              <div class="nav-section">Pipelines</div>
+            }
+            <a class="nav-item" routerLink="/pipelines" routerLinkActive="active" [title]="sidebarCollapsed() ? 'All Pipelines' : ''">
               <i class="bi bi-diagram-3"></i>
-              All Pipelines
+              @if (!sidebarCollapsed()) {
+                All Pipelines
+              }
             </a>
-            <a class="nav-item" routerLink="/builds" routerLinkActive="active">
+            <a class="nav-item" routerLink="/builds" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Build History' : ''">
               <i class="bi bi-clock-history"></i>
-              Build History
+              @if (!sidebarCollapsed()) {
+                Build History
+              }
             </a>
 
-            <div class="nav-section">Settings</div>
-            <a class="nav-item" routerLink="/settings/profile" routerLinkActive="active">
+            @if (!sidebarCollapsed()) {
+              <div class="nav-section">Settings</div>
+            }
+            <a class="nav-item" routerLink="/settings/profile" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Profile' : ''">
               <i class="bi bi-person-gear"></i>
-              Profile
+              @if (!sidebarCollapsed()) {
+                Profile
+              }
             </a>
             @if (isAdmin()) {
-              <a class="nav-item" routerLink="/settings" routerLinkActive="active">
+              <a class="nav-item" routerLink="/settings/general" routerLinkActive="active" [title]="sidebarCollapsed() ? 'General Settings' : ''">
                 <i class="bi bi-gear"></i>
-                General Settings
+                @if (!sidebarCollapsed()) {
+                  General
+                }
               </a>
-              <a class="nav-item" routerLink="/settings/users" routerLinkActive="active">
+              <a class="nav-item" routerLink="/settings/users" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Users' : ''">
                 <i class="bi bi-people"></i>
-                User Management
-              </a>
-              <a class="nav-item" routerLink="/settings/credentials" routerLinkActive="active">
-                <i class="bi bi-key"></i>
-                Credentials
-              </a>
-            } @else {
-              <a class="nav-item" routerLink="/settings/credentials" routerLinkActive="active">
-                <i class="bi bi-key"></i>
-                Credentials
+                @if (!sidebarCollapsed()) {
+                  Users
+                }
               </a>
             }
+            <a class="nav-item" routerLink="/settings/credentials" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Credentials' : ''">
+              <i class="bi bi-key"></i>
+              @if (!sidebarCollapsed()) {
+                Credentials
+              }
+            </a>
+            <a class="nav-item" routerLink="/settings/notifications" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Notifications' : ''">
+              <i class="bi bi-bell"></i>
+              @if (!sidebarCollapsed()) {
+                Notifications
+              }
+            </a>
           </nav>
+
+          <button class="sidebar-toggle" (click)="toggleSidebar()" [title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+            <i class="bi" [class.bi-chevron-left]="!sidebarCollapsed()" [class.bi-chevron-right]="sidebarCollapsed()"></i>
+          </button>
         </aside>
 
         <header class="topbar">
@@ -245,7 +272,72 @@ export class App {
   protected readonly themeService = inject(ThemeService);
   protected readonly authService = inject(AuthService);
   protected readonly isAdmin = this.authService.isAdmin;
-  
+  protected readonly sidebarCollapsed = signal(false);
+  protected readonly expandedGroups = signal<Set<string>>(new Set(['Pipelines', 'Settings']));
+
+  private menuItems: { label: string; icon: string; route?: string; exact?: boolean; children?: { label: string; route: string; icon: string; exact?: boolean }[] }[] = [];
+
+  constructor() {
+    this.buildMenuItems();
+  }
+
+  private buildMenuItems(): void {
+    const items: { label: string; icon: string; route?: string; exact?: boolean; children?: { label: string; route: string; icon: string; exact?: boolean }[] }[] = [
+      { label: 'Dashboard', icon: 'bi-grid-1x2', route: '/dashboard', exact: true }
+    ];
+
+    items.push({
+      label: 'Pipelines',
+      icon: 'bi-diagram-3',
+      children: [
+        { label: 'All Pipelines', route: '/pipelines', icon: 'bi-diagram-3', exact: true },
+        { label: 'Build History', route: '/builds', icon: 'bi-clock-history', exact: true }
+      ]
+    });
+
+    const settingsChildren: { label: string; route: string; icon: string; exact?: boolean }[] = [
+      { label: 'Profile', route: '/settings/profile', icon: 'bi-person-gear' }
+    ];
+
+    if (this.authService.isAdmin()) {
+      settingsChildren.push({ label: 'General', route: '/settings', icon: 'bi-gear', exact: true });
+      settingsChildren.push({ label: 'Users', route: '/settings/users', icon: 'bi-people' });
+    }
+    settingsChildren.push({ label: 'Credentials', route: '/settings/credentials', icon: 'bi-key' });
+
+    items.push({
+      label: 'Settings',
+      icon: 'bi-gear',
+      children: settingsChildren
+    });
+
+    this.menuItems = items;
+  }
+
+  getMenuItems() {
+    return this.menuItems;
+  }
+
+  toggleGroup(label: string): void {
+    this.expandedGroups.update(set => {
+      const newSet = new Set(set);
+      if (newSet.has(label)) {
+        newSet.delete(label);
+      } else {
+        newSet.add(label);
+      }
+      return newSet;
+    });
+  }
+
+  isGroupExpanded(label: string): boolean {
+    return this.expandedGroups().has(label);
+  }
+
+  toggleSidebar(): void {
+    this.sidebarCollapsed.update(v => !v);
+  }
+
   toggleTheme(): void {
     this.themeService.toggleTheme();
   }

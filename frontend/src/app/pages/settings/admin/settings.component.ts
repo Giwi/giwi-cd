@@ -115,6 +115,97 @@ import { AdminSettings } from '../../../models/admin.types';
             Save Settings
           </button>
         </div>
+
+        <div class="form-section">
+          <div class="form-section-title">
+            <i class="bi bi-arrow-repeat"></i>
+            Polling Settings
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pollingInterval">Polling Interval (seconds)</label>
+            <input 
+              type="number" 
+              class="form-control" 
+              id="pollingInterval"
+              [(ngModel)]="pollingInterval"
+              min="10"
+              max="3600"
+            />
+            <div class="form-text">How often to poll repositories for changes when "On push" trigger is enabled (10-3600 seconds)</div>
+          </div>
+
+          <button 
+            class="btn btn-primary"
+            [disabled]="isSaving()"
+            (click)="savePollingSettings()"
+          >
+            @if (isSaving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            Save Settings
+          </button>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="form-section">
+          <div class="form-section-title">
+            <i class="bi bi-bell"></i>
+            Notification Defaults
+          </div>
+          <p class="text-muted small mb-3">Configure default values for notification steps. These can be overridden in individual pipelines.</p>
+
+          <div class="form-group">
+            <label class="form-label">
+              <i class="bi bi-telegram text-primary me-1"></i> Telegram
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="telegramDefaultChannel"
+              [(ngModel)]="telegramDefaultChannel"
+              placeholder="Chat ID (ex: -1001234567890)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <i class="bi bi-chat-dots text-danger me-1"></i> Slack
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="slackDefaultChannel"
+              [(ngModel)]="slackDefaultChannel"
+              placeholder="Channel name (ex: #builds)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <i class="bi bi-people text-primary me-1"></i> Microsoft Teams
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="teamsDefaultChannel"
+              [(ngModel)]="teamsDefaultChannel"
+              placeholder="Team channel name (ex: CI/CD)"
+            />
+          </div>
+
+          <button 
+            class="btn btn-primary"
+            [disabled]="isSaving()"
+            (click)="saveNotificationSettings()"
+          >
+            @if (isSaving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            Save Settings
+          </button>
+        </div>
       </div>
     </div>
   `,
@@ -161,6 +252,10 @@ export class SettingsComponent implements OnInit {
   maxConcurrentBuilds = 3;
   defaultTimeout = 3600;
   retentionDays = 30;
+  pollingInterval = 60;
+  telegramDefaultChannel = '';
+  slackDefaultChannel = '';
+  teamsDefaultChannel = '';
 
   isSaving = signal(false);
   message = signal<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -177,6 +272,12 @@ export class SettingsComponent implements OnInit {
         this.maxConcurrentBuilds = s.maxConcurrentBuilds;
         this.defaultTimeout = s.defaultTimeout;
         this.retentionDays = s.retentionDays;
+        this.pollingInterval = s.pollingInterval || 60;
+        if (s.notificationDefaults) {
+          this.telegramDefaultChannel = s.notificationDefaults.telegram?.defaultChannel || '';
+          this.slackDefaultChannel = s.notificationDefaults.slack?.defaultChannel || '';
+          this.teamsDefaultChannel = s.notificationDefaults.teams?.defaultChannel || '';
+        }
       }
     });
   }
@@ -215,6 +316,46 @@ export class SettingsComponent implements OnInit {
       error: (err: any) => {
         this.isSaving.set(false);
         this.message.set({ type: 'error', text: err.error?.error || 'Failed to save settings' });
+      }
+    });
+  }
+
+  savePollingSettings(): void {
+    this.isSaving.set(true);
+    this.message.set(null);
+
+    this.adminService.updateSettings({ pollingInterval: this.pollingInterval }).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.message.set({ type: 'success', text: 'Polling settings saved successfully' });
+        setTimeout(() => this.message.set(null), 3000);
+      },
+      error: (err: any) => {
+        this.isSaving.set(false);
+        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save polling settings' });
+      }
+    });
+  }
+
+  saveNotificationSettings(): void {
+    this.isSaving.set(true);
+    this.message.set(null);
+
+    const notificationDefaults = {
+      telegram: { defaultChannel: this.telegramDefaultChannel || undefined },
+      slack: { defaultChannel: this.slackDefaultChannel || undefined },
+      teams: { defaultChannel: this.teamsDefaultChannel || undefined }
+    };
+
+    this.adminService.updateSettings({ notificationDefaults }).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.message.set({ type: 'success', text: 'Notification settings saved successfully' });
+        setTimeout(() => this.message.set(null), 3000);
+      },
+      error: (err: any) => {
+        this.isSaving.set(false);
+        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save notification settings' });
       }
     });
   }

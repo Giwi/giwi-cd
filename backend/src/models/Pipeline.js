@@ -18,7 +18,9 @@ class Pipeline {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       lastBuildAt: null,
-      lastBuildStatus: null
+      lastBuildStatus: null,
+      lastCommit: null,
+      pollingInterval: 60
     };
     db.get('pipelines').push(pipeline).write();
     return pipeline;
@@ -54,6 +56,19 @@ class Pipeline {
     }
     db.get('pipelines').find({ id }).assign(update).write();
     return this.findById(id);
+  }
+
+  static updateLastCommit(id, commit) {
+    db.get('pipelines').find({ id }).assign({ lastCommit: commit, updatedAt: new Date().toISOString() }).write();
+    return this.findById(id);
+  }
+
+  static getPushTriggerPipelines() {
+    return db.get('pipelines').filter(p => 
+      p.enabled && 
+      p.triggers?.push && 
+      p.repositoryUrl
+    ).value();
   }
 }
 

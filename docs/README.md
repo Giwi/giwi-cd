@@ -9,6 +9,8 @@
 - **Real-time Builds** - Live build logs via WebSocket
 - **User Management** - Role-based access control (Admin/Contributor)
 - **Credential Manager** - Secure storage for SSH keys and tokens
+- **Notifications** - Send build status to Telegram, Slack, and Microsoft Teams
+- **Push Polling** - Automatically detect new commits and trigger builds
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 
@@ -198,7 +200,7 @@ For running builds, click "Cancel" to abort.
 
 ### Credentials
 
-Credentials enable access to private repositories.
+Credentials enable access to private repositories and notification services.
 
 #### Creating a Credential
 
@@ -217,6 +219,61 @@ Reference credentials in pipeline commands:
 ```
 ${CRED:my-ssh-key}
 ```
+
+### Notifications
+
+GiwiCD supports sending build status notifications to multiple platforms.
+
+#### Supported Providers
+
+- **Telegram** - Send messages via Telegram Bot API
+- **Slack** - Send messages via Slack webhooks
+- **Teams** - Send messages via Microsoft Teams webhooks
+
+#### Adding a Notification Step
+
+1. Edit a pipeline and add a new stage (e.g., "Notify")
+2. Click "Add Notification" dropdown
+3. Select a provider (Telegram, Slack, or Teams)
+4. Configure:
+   - **Telegram**: Bot Token (from @BotFather) and Chat ID
+   - **Slack**: Webhook URL (from Slack App settings)
+   - **Teams**: Webhook URL (from Teams incoming webhook connector)
+
+#### Message Variables
+
+Use these variables in notification messages:
+
+| Variable | Description |
+|----------|-------------|
+| `{{PIPELINE_NAME}}` | Pipeline name |
+| `{{BRANCH}}` | Git branch |
+| `{{STATUS}}` | Build status (success/failed) |
+| `{{BUILD_NUMBER}}` | Build number |
+| `{{COMMIT}}` | Commit SHA (short) |
+| `{{COMMIT_MESSAGE}}` | Commit message |
+| `{{TRIGGERED_BY}}` | Trigger source (manual/push) |
+| `{{DURATION}}` | Build duration |
+
+Example message:
+```
+✅ Build #{{BUILD_NUMBER}} completed successfully!
+Pipeline: {{PIPELINE_NAME}}
+Branch: {{BRANCH}}
+Duration: {{DURATION}}
+```
+
+### Push Polling
+
+GiwiCD can automatically check your git repository for new commits.
+
+#### Enabling Push Triggers
+
+1. Edit a pipeline
+2. Enable "On push" trigger
+3. Optionally enable "Polling" for automatic detection
+
+The polling service checks all enabled pipelines every 60 seconds using `git ls-remote` to detect new commits.
 
 ### User Management (Admin)
 
@@ -291,6 +348,21 @@ Toggle between light and dark mode using the sun/moon icon in the topbar.
 | PUT | `/api/credentials/:id` | Update credential |
 | DELETE | `/api/credentials/:id` | Delete credential |
 
+### Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/webhooks/:pipelineId` | Trigger build via webhook |
+| POST | `/api/webhooks` | Trigger by repo URL |
+| GET | `/api/webhooks/generate/:pipelineId` | Generate webhook URL |
+
+### Polling
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/polling/check/:pipelineId` | Check pipeline now |
+| POST | `/api/polling/check-all` | Check all pipelines |
+
 ### Admin (Admin only)
 
 | Method | Endpoint | Description |
@@ -308,11 +380,13 @@ Toggle between light and dark mode using the sun/moon icon in the topbar.
 
 ```
 Express.js
-├── Routes (auth, pipelines, builds, credentials, admin)
+├── Routes (auth, pipelines, builds, credentials, admin, webhooks, polling)
 ├── Models (User, Pipeline, Build, Credential)
 ├── Services
 │   ├── BuildExecutor - Build execution engine
 │   ├── GitService - Git clone/pull operations
+│   ├── NotificationService - Telegram, Slack, Teams notifications
+│   ├── PollingService - Git repository polling
 │   └── WebSocketManager - Real-time communication
 └── Middleware (JWT auth, error handling)
 ```

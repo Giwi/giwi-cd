@@ -4,6 +4,7 @@ const Build = require('../models/Build');
 const Pipeline = require('../models/Pipeline');
 const Credential = require('../models/Credential');
 const GitService = require('./GitService');
+const NotificationService = require('./NotificationService');
 
 class BuildExecutor extends EventEmitter {
   constructor(wsManager) {
@@ -11,6 +12,7 @@ class BuildExecutor extends EventEmitter {
     this.wsManager = wsManager;
     this.runningBuilds = new Map();
     this.gitService = new GitService(wsManager);
+    this.notificationService = new NotificationService(wsManager);
     this.credentialCache = new Map();
   }
 
@@ -117,12 +119,21 @@ class BuildExecutor extends EventEmitter {
   async _executeStage(buildId, stage, pipeline, workDir) {
     const steps = stage.steps || [];
     for (const step of steps) {
-      const interpolatedCommand = this._interpolateCredentials(step.command, pipeline);
-      this._emit(buildId, 'info', `  ▶ Step: ${step.name || interpolatedCommand}`);
-      const stepWorkingDir = step.workingDir || workDir;
-      const success = await this._runCommand(buildId, interpolatedCommand, stepWorkingDir, pipeline);
-      if (!success && step.continueOnError !== true) {
-        return false;
+      if (step.type === 'notification') {
+        this._emit(buildId, 'info', `  🔔 Notification: ${step.name || step.provider}`);
+        const build = Build.findById(buildId);
+        const success = await this.notificationService.send(buildId, step, build, pipeline);
+        if (!success && step.continueOnError !== true) {
+          return false;
+        }
+      } else {
+        const interpolatedCommand = this._interpolateCredentials(step.command, pipeline);
+        this._emit(buildId, 'info', `  ▶ Step: ${step.name || interpolatedCommand}`);
+        const stepWorkingDir = step.workingDir || workDir;
+        const success = await this._runCommand(buildId, interpolatedCommand, stepWorkingDir, pipeline);
+        if (!success && step.continueOnError !== true) {
+          return false;
+        }
       }
     }
     return true;

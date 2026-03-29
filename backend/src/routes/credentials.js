@@ -19,7 +19,7 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   const { name, type, username, password, token, privateKey, passphrase, description } = req.body;
   if (!name) return res.status(400).json({ success: false, error: 'Credential name is required' });
-  if (!['username-password', 'token', 'ssh-key'].includes(type)) {
+  if (!['username-password', 'token', 'ssh-key', 'telegram', 'slack', 'teams', 'mail'].includes(type)) {
     return res.status(400).json({ success: false, error: 'Invalid credential type' });
   }
 
@@ -45,6 +45,62 @@ router.delete('/:id', (req, res) => {
 
   Credential.delete(req.params.id);
   res.json({ success: true, message: 'Credential deleted successfully' });
+});
+
+// POST /api/credentials/:id/test - Test a notification credential
+router.post('/:id/test', (req, res) => {
+  const credential = Credential.findById(req.params.id);
+  if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
+
+  const { provider } = req.body;
+  const { channel } = req.body;
+
+  if (!['telegram', 'slack', 'teams', 'mail'].includes(credential.type)) {
+    return res.status(400).json({ success: false, error: 'This credential type does not support test notifications' });
+  }
+
+  const NotificationService = require('../services/NotificationService');
+  const wsManager = req.app.get('wsManager');
+  const notificationService = new NotificationService(wsManager);
+
+  const mockBuild = {
+    id: 'test-' + Date.now(),
+    number: 999,
+    status: 'success',
+    branch: 'main',
+    commit: 'abc1234',
+    commitMessage: 'Test notification',
+    triggeredBy: 'test',
+    startedAt: new Date().toISOString(),
+    finishedAt: new Date().toISOString()
+  };
+
+  const mockPipeline = {
+    id: credential.id,
+    name: credential.name,
+    branch: 'main'
+  };
+
+  const testNotification = {
+    type: 'notification',
+    name: 'Test notification',
+    provider: credential.type,
+    credentialId: credential.id,
+    channel: channel || undefined,
+    message: `🧪 Test notification from GiwiCD\n✅ This is a test message sent at ${new Date().toLocaleString()}`
+  };
+
+  notificationService.send(mockBuild.id, testNotification, mockBuild, mockPipeline)
+    .then(result => {
+      if (result.success) {
+        res.json({ success: true, message: 'Test notification sent successfully' });
+      } else {
+        res.status(400).json({ success: false, error: result.error || 'Failed to send test notification' });
+      }
+    })
+    .catch(err => {
+      res.status(500).json({ success: false, error: err.message });
+    });
 });
 
 module.exports = router;

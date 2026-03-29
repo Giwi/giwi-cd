@@ -13,6 +13,8 @@ const buildRoutes = require('./routes/builds');
 const credentialRoutes = require('./routes/credentials');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const webhookRoutes = require('./routes/webhooks');
+const pollingRoutes = require('./routes/polling');
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/pipelines', pipelineRoutes);
 app.use('/api/builds', buildRoutes);
 app.use('/api/credentials', credentialRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/polling', pollingRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -50,6 +54,8 @@ app.get('/', (req, res) => {
       dashboard: '/api/dashboard',
       pipelines: '/api/pipelines',
       builds: '/api/builds',
+      webhooks: '/api/webhooks',
+      polling: '/api/polling',
       health: '/api/dashboard/health'
     }
   });

@@ -1,14 +1,25 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/types';
 
+interface NotificationStep {
+  type: 'notification';
+  name: string;
+  provider: 'telegram' | 'slack' | 'teams' | 'mail';
+  credentialId?: string;
+  channel?: string;
+  webhookUrl?: string;
+  message?: string;
+  continueOnError?: boolean;
+}
+
 @Component({
   selector: 'app-pipeline-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, TitleCasePipe],
   template: `
     <div class="page-header">
       <div class="d-flex align-items-center gap-3">
@@ -123,22 +134,89 @@ import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/typ
                       <ng-container [formArrayName]="'steps'">
                         <label class="form-label">Steps</label>
                         @for (step of getStepsControls(i); track $index; let j = $index) {
-                          <div class="input-group mb-2" [class.has-validation]="getStepControl(i, j)?.invalid">
-                            <span class="input-group-text bg-muted">$</span>
-                            <input type="text" class="form-control" [formControlName]="j" placeholder="npm install"
-                                   [class.is-invalid]="getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())"
-                                   [class.is-valid]="getStepControl(i, j)?.valid && getStepControl(i, j)?.touched">
-                            <button type="button" class="btn btn-outline-danger" (click)="removeStep(i, j)">
-                              <i class="bi bi-x"></i>
-                            </button>
-                            @if (getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())) {
-                              <div class="invalid-feedback">Command is required</div>
-                            }
-                          </div>
+                          @if (isNotificationStep(i, j)) {
+                            <div class="card mb-2 border-0" [class]="getProviderCardClass(i, j)">
+                              <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                  <span class="badge" [class]="getProviderBadgeClass(i, j)">
+                                    <i class="bi {{ getProviderIcon(i, j) }} me-1"></i> {{ getStepProvider(i, j) | titlecase }}
+                                  </span>
+                                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeStep(i, j)">
+                                    <i class="bi bi-trash"></i>
+                                  </button>
+                                </div>
+                                <div class="row g-2">
+                                  <div class="col-md-4">
+                                    <select class="form-select form-select-sm" [formControlName]="j" (change)="onProviderChange(i, j)">
+                                      <option value="command">Command</option>
+                                      <option value="notification-telegram">Telegram</option>
+                                      <option value="notification-slack">Slack</option>
+                                      <option value="notification-teams">Teams</option>
+                                      <option value="notification-mail">Mail</option>
+                                    </select>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <select class="form-select form-select-sm" [formControlName]="getNotificationCredentialControl(i, j)">
+                                      <option value="">Select credential</option>
+                                      @for (cred of getNotificationCredentials(); track cred.id) {
+                                        <option [value]="cred.id">{{ cred.name }}</option>
+                                      }
+                                    </select>
+                                  </div>
+                                  <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" [placeholder]="getChannelPlaceholder(i, j)"
+                                           [formControlName]="getNotificationChannelControl(i, j)">
+                                  </div>
+                                </div>
+                                <div class="row g-2 mt-2">
+                                  <div class="col-12">
+                                    <textarea class="form-control form-control-sm" rows="2" [placeholder]="getMessagePlaceholder()"
+                                              [formControlName]="getNotificationMessageControl(i, j)"></textarea>
+                                    <div class="form-text small">Variables: {{ '{{PIPELINE_NAME}}' }}, {{ '{{BRANCH}}' }}, {{ '{{STATUS}}' }}, {{ '{{BUILD_NUMBER}}' }}, {{ '{{COMMIT}}' }}, {{ '{{DURATION}}' }}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          } @else {
+                            <div class="input-group mb-2" [class.has-validation]="getStepControl(i, j)?.invalid">
+                              <span class="input-group-text bg-muted">$</span>
+                              <input type="text" class="form-control" [formControlName]="j" placeholder="npm install"
+                                     [class.is-invalid]="getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())"
+                                     [class.is-valid]="getStepControl(i, j)?.valid && getStepControl(i, j)?.touched">
+                              <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" (click)="$event.stopPropagation()">
+                                <span class="visually-hidden">Toggle step type</span>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'telegram')"><i class="bi bi-telegram me-2"></i>Telegram</a></li>
+                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'slack')"><i class="bi bi-chat-dots me-2"></i>Slack</a></li>
+                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'teams')"><i class="bi bi-people me-2"></i>Teams</a></li>
+                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'mail')"><i class="bi bi-envelope me-2"></i>Mail</a></li>
+                              </ul>
+                              <button type="button" class="btn btn-outline-danger" (click)="removeStep(i, j)">
+                                <i class="bi bi-x"></i>
+                              </button>
+                              @if (getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())) {
+                                <div class="invalid-feedback">Command is required</div>
+                              }
+                            </div>
+                          }
                         }
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" (click)="addStep(i)">
-                          <i class="bi bi-plus-circle me-1"></i> Add Step
-                        </button>
+                        <div class="btn-group btn-group-sm">
+                          <button type="button" class="btn btn-link text-decoration-none p-0 me-3" (click)="addStep(i)">
+                            <i class="bi bi-plus-circle me-1"></i> Add Command
+                          </button>
+                          <div class="dropdown">
+                            <button type="button" class="btn btn-link text-decoration-none p-0 text-success dropdown-toggle" data-bs-toggle="dropdown">
+                              <i class="bi bi-bell me-1"></i> Add Notification
+                            </button>
+                            <ul class="dropdown-menu">
+                              <li><a class="dropdown-item" (click)="addNotificationStep(i, 'telegram')"><i class="bi bi-telegram text-info me-2"></i>Telegram</a></li>
+                              <li><a class="dropdown-item" (click)="addNotificationStep(i, 'slack')"><i class="bi bi-chat-dots text-danger me-2"></i>Slack</a></li>
+                              <li><a class="dropdown-item" (click)="addNotificationStep(i, 'teams')"><i class="bi bi-people text-primary me-2"></i>Teams</a></li>
+                              <li><a class="dropdown-item" (click)="addNotificationStep(i, 'mail')"><i class="bi bi-envelope text-success me-2"></i>Mail</a></li>
+                            </ul>
+                          </div>
+                        </div>
                       </ng-container>
                     </div>
                   </div>
@@ -181,16 +259,52 @@ import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/typ
               </div>
             </ng-container>
 
-            @if (credentials().length > 0) {
+            @if (getGitCredentials().length > 0) {
               <div class="form-section-title mt-4">
-                <i class="bi bi-key"></i> Variables d'identifiants
+                <i class="bi bi-key"></i> Variables Git
               </div>
               <div class="alert alert-info py-2 small mb-0">
                 <p class="mb-1">Utilisez les variables dans vos commandes:</p>
                 <ul class="mb-0 small">
-                  @for (cred of credentials(); track cred.id) {
+                  @for (cred of getGitCredentials(); track cred.id) {
                     <li><code>{{ getCredVar(cred.name) }}</code></li>
                   }
+                </ul>
+              </div>
+            }
+            
+            @if (getNotificationCredentials().length > 0) {
+              <div class="form-section-title mt-4">
+                <i class="bi bi-bell"></i> Notifications
+              </div>
+              <div class="alert alert-success py-2 small mb-0">
+                <p class="mb-1">Credenciales de notificación disponibles:</p>
+                <ul class="mb-0 small">
+                  @for (cred of getNotificationCredentials(); track cred.id) {
+                    <li><i class="bi bi-{{ getCredIcon(cred.type) }} me-1"></i> {{ cred.name }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (isEdit() && pipeline()) {
+              <div class="form-section-title mt-4">
+                <i class="bi bi-webhook"></i> Webhook URL
+              </div>
+              <div class="alert alert-secondary py-2 small mb-0">
+                <p class="mb-2 small">Use this URL to trigger builds automatically:</p>
+                <div class="input-group input-group-sm">
+                  <input type="text" class="form-control" [value]="getWebhookUrl()" readonly #webhookInput>
+                  <button class="btn btn-outline-secondary" (click)="copyWebhookUrl(webhookInput)" title="Copy">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+                <hr class="my-2">
+                <p class="mb-1 small"><strong>Configuration:</strong></p>
+                <ul class="mb-0 small text-muted">
+                  <li><strong>GitHub:</strong> Settings → Webhooks → Add webhook</li>
+                  <li><strong>GitLab:</strong> Settings → Webhooks</li>
+                  <li><strong>Bitbucket:</strong> Repository settings → Webhooks</li>
                 </ul>
               </div>
             }
@@ -222,6 +336,7 @@ export class PipelineFormComponent implements OnInit {
   credentials = signal<Credential[]>([]);
   submitting = signal(false);
   formSubmitted = signal(false);
+  notificationSteps = signal<Map<string, { provider: string; channel: string }>>(new Map());
 
   constructor(
     private fb: FormBuilder,
@@ -301,20 +416,20 @@ export class PipelineFormComponent implements OnInit {
     });
 
     this.stages.clear();
-    (pipeline.stages || []).forEach(stage => {
-      this.addStage(stage);
+    (pipeline.stages || []).forEach((stage, sIdx) => {
+      this.addStage(stage, sIdx);
     });
   }
 
-  addStage(stageData?: Stage): void {
+  addStage(stageData?: Stage, stageIndex?: number): void {
     const stageGroup = this.fb.group({
       name: [stageData?.name || '', Validators.required],
       continueOnError: [stageData?.continueOnError || false],
       steps: this.fb.array([])
     });
 
-    (stageData?.steps || []).forEach(step => {
-      this.addStepToStage(stageGroup, step);
+    (stageData?.steps || []).forEach((step, stepIdx) => {
+      this.addStepToStage(stageGroup, step, stageIndex ?? this.stages.length, stepIdx);
     });
 
     this.stages.push(stageGroup);
@@ -332,18 +447,191 @@ export class PipelineFormComponent implements OnInit {
     return this.getSteps(stageIndex).at(stepIndex);
   }
 
+  getStepKey(stageIndex: number, stepIndex: number): string {
+    return `${stageIndex}-${stepIndex}`;
+  }
+
+  isNotificationStep(stageIndex: number, stepIndex: number): boolean {
+    const key = this.getStepKey(stageIndex, stepIndex);
+    return this.notificationSteps().has(key);
+  }
+
+  getStepProvider(stageIndex: number, stepIndex: number): string {
+    const key = this.getStepKey(stageIndex, stepIndex);
+    return this.notificationSteps().get(key)?.provider || '';
+  }
+
+  getNotificationCredentials(): Credential[] {
+    return this.credentials().filter(c => ['telegram', 'slack', 'teams', 'mail'].includes(c.type));
+  }
+
+  getNotificationChannelControl(stageIndex: number, stepIndex: number): string {
+    return 'ch-' + this.getStepKey(stageIndex, stepIndex);
+  }
+
+  getNotificationCredentialControl(stageIndex: number, stepIndex: number): string {
+    return 'cred-' + this.getStepKey(stageIndex, stepIndex);
+  }
+
+  getNotificationMessageControl(stageIndex: number, stepIndex: number): string {
+    return 'msg-' + this.getStepKey(stageIndex, stepIndex);
+  }
+
+  getProviderCardClass(stageIndex: number, stepIndex: number): string {
+    const provider = this.getStepProvider(stageIndex, stepIndex);
+    const colors: Record<string, string> = {
+      'telegram': 'bg-info-subtle',
+      'slack': 'bg-danger-subtle',
+      'teams': 'bg-primary-subtle',
+      'mail': 'bg-success-subtle'
+    };
+    return colors[provider] || 'bg-muted';
+  }
+
+  getProviderBadgeClass(stageIndex: number, stepIndex: number): string {
+    const provider = this.getStepProvider(stageIndex, stepIndex);
+    const colors: Record<string, string> = {
+      'telegram': 'bg-primary',
+      'slack': 'bg-danger',
+      'teams': 'bg-primary',
+      'mail': 'bg-success'
+    };
+    return colors[provider] || 'bg-secondary';
+  }
+
+  getProviderIcon(stageIndex: number, stepIndex: number): string {
+    const provider = this.getStepProvider(stageIndex, stepIndex);
+    const icons: Record<string, string> = {
+      'telegram': 'bi-telegram',
+      'slack': 'bi-chat-dots',
+      'teams': 'bi-people',
+      'mail': 'bi-envelope'
+    };
+    return icons[provider] || 'bi-bell';
+  }
+
+  getChannelPlaceholder(stageIndex: number, stepIndex: number): string {
+    const provider = this.getStepProvider(stageIndex, stepIndex);
+    if (provider === 'telegram') return 'Chat ID (e.g. -1001234567890)';
+    if (provider === 'mail') return 'Recipient email (e.g. user@example.com)';
+    return 'Webhook URL or channel name';
+  }
+
+  getMessagePlaceholder(): string {
+    return 'Message (optional). Example: ✅ Build #{{BUILD_NUMBER}} completed in {{DURATION}}';
+  }
+
+  private ensureControlExists(stageIndex: number, controlName: string, defaultValue: string = ''): string {
+    const steps = this.getSteps(stageIndex);
+    let control = steps.get(controlName);
+    if (!control) {
+      control = this.fb.control(defaultValue);
+      (steps as any).push(control);
+    }
+    return controlName;
+  }
+
   addStep(stageIndex: number): void {
     const steps = this.getSteps(stageIndex);
     steps.push(this.fb.control('', Validators.required));
   }
 
-  private addStepToStage(stageGroup: FormGroup, stepData?: Step): void {
+  addNotificationStep(stageIndex: number, provider: string): void {
+    const steps = this.getSteps(stageIndex);
+    const stepIndex = steps.length;
+    const key = this.getStepKey(stageIndex, stepIndex);
+    
+    steps.push(this.fb.control(`notification-${provider}`, Validators.required));
+    this.ensureControlExists(stageIndex, 'ch-' + key, '');
+    this.ensureControlExists(stageIndex, 'cred-' + key, '');
+    this.ensureControlExists(stageIndex, 'msg-' + key, this.getDefaultMessage());
+    
+    const newMap = new Map(this.notificationSteps());
+    newMap.set(key, { provider, channel: '' });
+    this.notificationSteps.set(newMap);
+  }
+
+  convertToNotification(stageIndex: number, stepIndex: number, provider: string): void {
+    const key = this.getStepKey(stageIndex, stepIndex);
+    const steps = this.getSteps(stageIndex);
+    steps.at(stepIndex).setValue(`notification-${provider}`);
+    
+    this.ensureControlExists(stageIndex, 'ch-' + key, '');
+    this.ensureControlExists(stageIndex, 'cred-' + key, '');
+    this.ensureControlExists(stageIndex, 'msg-' + key, this.getDefaultMessage());
+    
+    const newMap = new Map(this.notificationSteps());
+    newMap.set(key, { provider, channel: '' });
+    this.notificationSteps.set(newMap);
+  }
+
+  onProviderChange(stageIndex: number, stepIndex: number): void {
+    const value = this.getStepControl(stageIndex, stepIndex)?.value || '';
+    const provider = value.replace('notification-', '');
+    const key = this.getStepKey(stageIndex, stepIndex);
+    
+    if (value.startsWith('notification-')) {
+      this.ensureControlExists(stageIndex, 'ch-' + key, '');
+      this.ensureControlExists(stageIndex, 'cred-' + key, '');
+      this.ensureControlExists(stageIndex, 'msg-' + key, this.getDefaultMessage());
+      
+      const newMap = new Map(this.notificationSteps());
+      const existing = newMap.get(key) || { provider, channel: '' };
+      newMap.set(key, { ...existing, provider });
+      this.notificationSteps.set(newMap);
+    } else {
+      const newMap = new Map(this.notificationSteps());
+      newMap.delete(key);
+      this.notificationSteps.set(newMap);
+    }
+  }
+
+  private getDefaultMessage(): string {
+    return '✅ Build #{{BUILD_NUMBER}} completed successfully\n' +
+           'Pipeline: {{PIPELINE_NAME}}\n' +
+           'Branch: {{BRANCH}}\n' +
+           'Duration: {{DURATION}}';
+  }
+
+  private addStepToStage(stageGroup: FormGroup, stepData?: Step, stageIndex?: number, stepIdx?: number): void {
     const steps = stageGroup.get('steps') as FormArray;
-    steps.push(this.fb.control(stepData?.command || '', Validators.required));
+    const sIdx = stageIndex ?? this.stages.length;
+    const stIdx = stepIdx ?? steps.length;
+    
+    if (stepData?.type === 'notification' && stepData.provider) {
+      const key = this.getStepKey(sIdx, stIdx);
+      const newMap = new Map(this.notificationSteps());
+      newMap.set(key, { provider: stepData.provider, channel: stepData.channel || '' });
+      this.notificationSteps.set(newMap);
+      
+      steps.push(this.fb.control(`notification-${stepData.provider}`, Validators.required));
+      this.ensureControlExists(stageIndex!, 'ch-' + key, stepData.channel || '');
+      this.ensureControlExists(stageIndex!, 'cred-' + key, stepData.credentialId || '');
+      this.ensureControlExists(stageIndex!, 'msg-' + key, stepData.message || this.getDefaultMessage());
+    } else {
+      steps.push(this.fb.control(stepData?.command || '', Validators.required));
+    }
   }
 
   removeStep(stageIndex: number, stepIndex: number): void {
-    this.getSteps(stageIndex).removeAt(stepIndex);
+    const key = this.getStepKey(stageIndex, stepIndex);
+    const steps = this.getSteps(stageIndex);
+    
+    if (this.notificationSteps().has(key)) {
+      const controlsToRemove = ['ch-' + key, 'cred-' + key, 'msg-' + key];
+      controlsToRemove.reverse().forEach(name => {
+        const idx = steps.controls.findIndex((c: any) => c instanceof this.fb.group ? false : (steps.get(name) === c));
+        if (idx > stepIndex) {
+          steps.removeAt(idx);
+        }
+      });
+    }
+    
+    steps.removeAt(stepIndex);
+    
+    const newMap = new Map(this.notificationSteps());
+    newMap.delete(key);
+    this.notificationSteps.set(newMap);
   }
 
   removeStage(index: number): void {
@@ -372,6 +660,32 @@ export class PipelineFormComponent implements OnInit {
     return '${CRED:' + name + '}';
   }
 
+  getGitCredentials(): Credential[] {
+    return this.credentials().filter(c => !['telegram', 'slack', 'teams', 'mail'].includes(c.type));
+  }
+
+  getCredIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'telegram': 'telegram',
+      'slack': 'chat-dots',
+      'teams': 'people',
+      'mail': 'envelope'
+    };
+    return icons[type] || 'key';
+  }
+
+  getWebhookUrl(): string {
+    const pipelineId = this.pipeline()?.id;
+    if (!pipelineId) return '';
+    return `${this.api.baseUrl}/webhooks/${pipelineId}`;
+  }
+
+  copyWebhookUrl(input: HTMLInputElement): void {
+    navigator.clipboard.writeText(input.value).then(() => {
+      alert('URL copied to clipboard!');
+    });
+  }
+
   onSubmit(): void {
     this.formSubmitted.set(true);
     
@@ -388,6 +702,41 @@ export class PipelineFormComponent implements OnInit {
 
     this.submitting.set(true);
     const rawValue = this.form.getRawValue();
+    const stagesData = (rawValue.stages || []).map((stage: any, sIdx: number) => {
+      const steps: any[] = [];
+      let i = 0;
+      while (i < (stage.steps || []).length) {
+        const cmd = stage.steps[i];
+        const key = this.getStepKey(sIdx, i);
+        
+        if (typeof cmd === 'string' && cmd.startsWith('notification-')) {
+          const provider = cmd.replace('notification-', '');
+          const channel = stage.steps[i + 1] || '';
+          const credentialId = stage.steps[i + 2] || '';
+          const message = stage.steps[i + 3] || '';
+          
+          steps.push({
+            type: 'notification',
+            name: `${provider} notification`,
+            provider: provider,
+            credentialId: credentialId || undefined,
+            channel: channel,
+            message: message || this.getDefaultMessage()
+          });
+          i += 4;
+        } else {
+          steps.push({ command: cmd });
+          i++;
+        }
+      }
+      
+      return {
+        name: stage.name,
+        continueOnError: stage.continueOnError ?? false,
+        steps: steps
+      };
+    });
+
     const data: any = {
       name: rawValue.name,
       description: rawValue.description || '',
@@ -395,11 +744,7 @@ export class PipelineFormComponent implements OnInit {
       branch: rawValue.branch || 'main',
       enabled: rawValue.enabled ?? true,
       triggers: rawValue.triggers,
-      stages: (rawValue.stages || []).map((stage: any) => ({
-        name: stage.name,
-        continueOnError: stage.continueOnError ?? false,
-        steps: (stage.steps || []).map((cmd: string) => ({ command: cmd }))
-      }))
+      stages: stagesData
     };
 
     if (rawValue.credentialId) {

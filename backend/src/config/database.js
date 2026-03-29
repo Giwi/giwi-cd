@@ -23,7 +23,9 @@ db.defaults({
     maxConcurrentBuilds: 3,
     defaultTimeout: 3600,
     retentionDays: 30,
-    allowRegistration: true
+    allowRegistration: true,
+    pollingInterval: 60,
+    notificationDefaults: {}
   }
 }).write();
 

@@ -117,7 +117,7 @@ router.get('/settings', (req, res) => {
 
 router.put('/settings', (req, res) => {
   try {
-    const { allowRegistration, maxConcurrentBuilds, defaultTimeout, retentionDays } = req.body;
+    const { allowRegistration, maxConcurrentBuilds, defaultTimeout, retentionDays, pollingInterval, notificationDefaults } = req.body;
     
     const updates = {};
     
@@ -144,6 +144,16 @@ router.put('/settings', (req, res) => {
         return res.status(400).json({ error: 'retentionDays must be between 1 and 365' });
       }
       updates.retentionDays = value;
+    }
+    if (pollingInterval !== undefined) {
+      const value = parseInt(pollingInterval, 10);
+      if (value < 10 || value > 3600) {
+        return res.status(400).json({ error: 'pollingInterval must be between 10 and 3600 seconds' });
+      }
+      updates.pollingInterval = value;
+    }
+    if (notificationDefaults !== undefined) {
+      updates.notificationDefaults = notificationDefaults;
     }
 
     db.get('settings').assign(updates).write();
