@@ -1,0 +1,35 @@
+{
+  "name": "giwicd-backend",
+  "version": "1.0.0",
+  "description": "GiwiCD - CI/CD Engine Backend API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cicd",
+    "pipeline",
+    "automation"
+  ],
+  "author": "GiwiCD",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "lowdb": "^1.0.0",
+    "morgan": "^1.10.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "nodemon": "^3.1.7"
+  }
+}
