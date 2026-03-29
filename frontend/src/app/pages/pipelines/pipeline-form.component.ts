@@ -85,7 +85,7 @@ import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/typ
               @for (stage of stages.controls; track $index; let i = $index) {
                 <ng-container [formGroupName]="i">
                   <div class="card mb-3">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                    <div class="card-header card-header-theme py-2 d-flex justify-content-between align-items-center">
                       <span class="fw-semibold">
                         <i class="bi bi-chevron-right me-1"></i> Stage {{ i + 1 }}: {{ stage.get('name')?.value || 'Untitled' }}
                       </span>
@@ -124,7 +124,7 @@ import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/typ
                         <label class="form-label">Steps</label>
                         @for (step of getStepsControls(i); track $index; let j = $index) {
                           <div class="input-group mb-2" [class.has-validation]="getStepControl(i, j)?.invalid">
-                            <span class="input-group-text bg-light">$</span>
+                            <span class="input-group-text bg-muted">$</span>
                             <input type="text" class="form-control" [formControlName]="j" placeholder="npm install"
                                    [class.is-invalid]="getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())"
                                    [class.is-valid]="getStepControl(i, j)?.valid && getStepControl(i, j)?.touched">
@@ -147,7 +147,7 @@ import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/typ
             </ng-container>
             
             @if (stages.length === 0) {
-              <div class="text-center py-4 text-muted border rounded bg-light">
+              <div class="text-center py-4 text-muted border rounded bg-muted">
                 <i class="bi bi-list-task fs-1 d-block mb-2"></i>
                 No stages yet. Add a stage to define your pipeline.
               </div>

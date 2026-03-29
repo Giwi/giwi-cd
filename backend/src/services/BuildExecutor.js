@@ -19,6 +19,7 @@ class BuildExecutor extends EventEmitter {
       throw new Error('Build already running');
     }
 
+    let workDir = null;
     this.runningBuilds.set(build.id, { build, pipeline, process: null });
     Pipeline.updateStatus(pipeline.id, 'running');
     Build.updateStatus(build.id, 'running');
@@ -42,9 +43,14 @@ class BuildExecutor extends EventEmitter {
         return;
       }
 
+      workDir = cloneResult.workDir;
+      this._emit(build.id, 'info', `📁 Working directory: ${workDir}`);
+
       if (build.commit) {
-        await this.gitService.checkoutCommit(build.id, cloneResult.workDir, build.commit);
+        await this.gitService.checkoutCommit(build.id, workDir, build.commit);
       }
+    } else {
+      workDir = this.gitService.getWorkspaceDir();
     }
 
     try {
@@ -70,7 +76,7 @@ class BuildExecutor extends EventEmitter {
         });
         this.wsManager.broadcast({ type: 'build:stage', buildId: build.id, stageIndex: i, stageName: stage.name });
 
-        const stageSuccess = await this._executeStage(build.id, stage, pipeline);
+        const stageSuccess = await this._executeStage(build.id, stage, pipeline, workDir);
         stageResults.push(stageSuccess ? 'success' : 'failed');
 
         Build.update(build.id, {
@@ -108,12 +114,13 @@ class BuildExecutor extends EventEmitter {
     }
   }
 
-  async _executeStage(buildId, stage, pipeline) {
+  async _executeStage(buildId, stage, pipeline, workDir) {
     const steps = stage.steps || [];
     for (const step of steps) {
       const interpolatedCommand = this._interpolateCredentials(step.command, pipeline);
       this._emit(buildId, 'info', `  ▶ Step: ${step.name || interpolatedCommand}`);
-      const success = await this._runCommand(buildId, interpolatedCommand, step.workingDir, pipeline);
+      const stepWorkingDir = step.workingDir || workDir;
+      const success = await this._runCommand(buildId, interpolatedCommand, stepWorkingDir, pipeline);
       if (!success && step.continueOnError !== true) {
         return false;
       }
@@ -175,13 +182,36 @@ class BuildExecutor extends EventEmitter {
       }
       const maskedCommand = this._maskCredentials(command);
       this._emit(buildId, 'info', `    $ ${maskedCommand}`);
-      const simulatedOutput = this._simulateCommand(command);
-      setTimeout(() => {
-        simulatedOutput.lines.forEach(line => {
-          this._emit(buildId, simulatedOutput.success ? 'info' : 'error', `    ${line}`);
-        });
-        resolve(simulatedOutput.success);
-      }, simulatedOutput.delay);
+      
+      const execOptions = {
+        cwd: workingDir || process.cwd(),
+        timeout: 300000,
+        maxBuffer: 10 * 1024 * 1024
+      };
+      
+      require('child_process').exec(command, execOptions, (error, stdout, stderr) => {
+        if (stdout) {
+          stdout.split('\n').forEach(line => {
+            if (line.trim()) {
+              this._emit(buildId, 'info', `    ${line}`);
+            }
+          });
+        }
+        if (stderr && stderr.trim()) {
+          stderr.split('\n').forEach(line => {
+            if (line.trim()) {
+              this._emit(buildId, 'error', `    ${line}`);
+            }
+          });
+        }
+        
+        if (error) {
+          this._emit(buildId, 'error', `    ❌ Exit code: ${error.code || 1}`);
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      });
     });
   }
 

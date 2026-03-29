@@ -86,7 +86,7 @@ import { Pipeline, ApiResponse } from '../../models/types';
                 <span class="badge bg-{{ pipeline.enabled ? 'success' : 'secondary' }}">
                   {{ pipeline.enabled ? 'Active' : 'Inactive' }}
                 </span>
-                <span class="badge bg-light text-dark">
+                <span class="badge bg-muted text-secondary">
                   <i class="bi bi-list-check me-1"></i>{{ pipeline.stages?.length || 0 }} stages
                 </span>
                 @if (pipeline.credentialName) {

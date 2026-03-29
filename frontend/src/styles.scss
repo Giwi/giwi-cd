@@ -179,33 +179,39 @@
   }
 
   // Table overrides
-  .build-table, .table {
-    background: var(--bg-surface);
-    border-color: var(--border);
-    color: var(--text-primary);
+  .build-table, .table, table {
+    background: var(--bg-surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text-primary) !important;
 
-    th {
-      background: var(--bg-elevated);
-      border-color: var(--border);
-      color: var(--text-secondary);
+    th, thead th {
+      background: var(--bg-elevated) !important;
+      border-color: var(--border) !important;
+      color: var(--text-secondary) !important;
     }
 
-    td {
-      border-color: var(--border-light);
-      color: var(--text-primary);
+    td, tbody td {
+      border-color: var(--border-light) !important;
+      color: var(--text-primary) !important;
+      background: var(--bg-surface) !important;
     }
 
     tbody tr {
       color: var(--text-primary);
+      background: var(--bg-surface) !important;
 
       &:hover {
-        background: var(--bg-muted);
+        background: var(--bg-muted) !important;
       }
     }
 
     .text-muted {
       color: var(--text-muted) !important;
     }
+  }
+
+  .table-responsive {
+    background: var(--bg-surface) !important;
   }
 
   // Form section
@@ -1452,6 +1458,14 @@ body {
 @keyframes skeleton-loading {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+// Card header theme-aware
+.card-header-theme {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 1rem 1.25rem;
 }
 
 // Responsive

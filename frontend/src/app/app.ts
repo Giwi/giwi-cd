@@ -51,7 +51,7 @@ import { AuthService } from './services/auth.service';
               <i class="bi bi-person-gear"></i>
               Profile
             </a>
-            @if (authService.isAdmin()) {
+            @if (isAdmin()) {
               <a class="nav-item" routerLink="/settings" routerLinkActive="active">
                 <i class="bi bi-gear"></i>
                 General Settings
@@ -110,6 +110,11 @@ import { AuthService } from './services/auth.service';
                   <div class="dropdown-item-text">
                     <strong>{{ authService.user()?.username }}</strong>
                     <small class="d-block text-muted">{{ authService.user()?.email }}</small>
+                    @if (isAdmin()) {
+                      <span class="badge bg-primary mt-1">Admin</span>
+                    } @else {
+                      <span class="badge bg-secondary mt-1">{{ authService.user()?.role }}</span>
+                    }
                   </div>
                 </li>
                 <li><hr class="dropdown-divider"></li>
@@ -210,10 +215,28 @@ import { AuthService } from './services/auth.service';
     
     .dropdown-item-text {
       padding: 0.5rem 1rem;
+      color: var(--text-primary);
+      
+      strong {
+        color: var(--text-primary);
+      }
+      
+      .text-muted {
+        color: var(--text-muted) !important;
+      }
     }
     
     .dropdown-item {
+      color: var(--text-primary);
       cursor: pointer;
+      
+      &:hover {
+        background: var(--bg-muted);
+      }
+    }
+    
+    .dropdown-divider {
+      border-color: var(--border);
     }
   `]
 })
@@ -221,6 +244,7 @@ export class App {
   protected readonly title = 'GiwiCD';
   protected readonly themeService = inject(ThemeService);
   protected readonly authService = inject(AuthService);
+  protected readonly isAdmin = this.authService.isAdmin;
   
   toggleTheme(): void {
     this.themeService.toggleTheme();

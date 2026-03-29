@@ -18,11 +18,12 @@ export class AuthService {
   private _user = signal<User | null>(null);
   private _isAuthenticated = signal(false);
   private _isLoading = signal(true);
+  private _isAdmin = signal(false);
 
   readonly user = this._user.asReadonly();
   readonly isAuthenticated = this._isAuthenticated.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
-  readonly isAdmin = computed(() => this._user()?.role === 'admin');
+  readonly isAdmin = this._isAdmin.asReadonly();
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
@@ -41,6 +42,7 @@ export class AuthService {
         const user = JSON.parse(userStr);
         this._user.set(user);
         this._isAuthenticated.set(true);
+        this._isAdmin.set(user.role === 'admin');
       } catch {
         this.clearAuth();
       }
@@ -53,6 +55,7 @@ export class AuthService {
     localStorage.removeItem(this.userKey);
     this._user.set(null);
     this._isAuthenticated.set(false);
+    this._isAdmin.set(false);
   }
 
   private storeAuth(token: string, user: User): void {
@@ -60,6 +63,7 @@ export class AuthService {
     localStorage.setItem(this.userKey, JSON.stringify(user));
     this._user.set(user);
     this._isAuthenticated.set(true);
+    this._isAdmin.set(user.role === 'admin');
   }
 
   getToken(): string | null {
@@ -111,6 +115,7 @@ export class AuthService {
       tap(response => {
         this._user.set(response.user);
         this._isAuthenticated.set(true);
+        this._isAdmin.set(response.user.role === 'admin');
         localStorage.setItem(this.userKey, JSON.stringify(response.user));
       }),
       catchError(() => {

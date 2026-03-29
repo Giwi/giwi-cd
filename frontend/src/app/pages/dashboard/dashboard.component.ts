@@ -70,7 +70,7 @@ import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types'
       <div class="row g-4">
         <div class="col-lg-8">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Recent Builds</h5>
               <a routerLink="/builds" class="btn btn-sm btn-outline-primary">
                 View All <i class="bi bi-arrow-right"></i>
@@ -116,7 +116,7 @@ import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types'
 
         <div class="col-lg-4">
           <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
+            <div class="card-header card-header-theme py-3">
               <h5 class="mb-0">Pipeline Status</h5>
             </div>
             <div class="card-body">
@@ -136,7 +136,7 @@ import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types'
           </div>
 
           <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
+            <div class="card-header card-header-theme py-3">
               <h5 class="mb-0">Builds by Status</h5>
             </div>
             <div class="card-body">
@@ -150,7 +150,7 @@ import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types'
           </div>
 
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Pipelines</h5>
               <a routerLink="/pipelines" class="btn btn-sm btn-outline-primary">
                 Manage <i class="bi bi-arrow-right"></i>

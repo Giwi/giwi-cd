@@ -47,7 +47,7 @@ import { Subscription } from 'rxjs';
       <div class="row g-4">
         <div class="col-lg-4">
           <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
+            <div class="card-header card-header-theme py-3">
               <h5 class="mb-0">Build Info</h5>
             </div>
             <div class="card-body">
@@ -90,7 +90,7 @@ import { Subscription } from 'rxjs';
           </div>
 
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3">
+            <div class="card-header card-header-theme py-3">
               <h5 class="mb-0">Stages</h5>
             </div>
             <div class="card-body p-0">
@@ -113,7 +113,7 @@ import { Subscription } from 'rxjs';
 
         <div class="col-lg-8">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Build Logs</h5>
               <div class="btn-group btn-group-sm">
                 <button class="btn btn-outline-secondary" (click)="clearFilter()">

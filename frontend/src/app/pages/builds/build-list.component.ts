@@ -82,7 +82,7 @@ import { Build, Pipeline, ApiResponse, BuildStatus } from '../../models/types';
                     </td>
                     <td>{{ formatDuration(build.duration) }}</td>
                     <td>
-                      <span class="badge bg-light text-dark">
+                      <span class="badge bg-muted text-secondary">
                         {{ formatTrigger(build.triggeredBy) }}
                       </span>
                     </td>
