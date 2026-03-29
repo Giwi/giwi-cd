@@ -14,6 +14,8 @@
 - **Real-time Builds** - Live build logs via WebSocket
 - **User Management** - Role-based access control (Admin/Contributor)
 - **Credential Manager** - Secure storage for SSH keys and tokens
+- **Notifications** - Send build status to Telegram, Slack, Teams, and Email
+- **Push Polling** - Automatically detect new commits and trigger builds
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 
@@ -22,7 +24,7 @@
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- Docker & Docker Compose (optional)
 
 ### Installation
 
@@ -40,12 +42,24 @@ cd ../frontend && npm install
 
 ### Running
 
+#### Development
+
 ```bash
 # Terminal 1 - Backend (port 3000)
 cd backend && npm start
 
 # Terminal 2 - Frontend (port 4200)
 cd frontend && npm start
+```
+
+#### Docker
+
+```bash
+# Build and start
+docker-compose up --build
+
+# Or with custom JWT secret
+JWT_SECRET=your-secret docker-compose up --build
 ```
 
 Open http://localhost:4200 and login with:
@@ -66,13 +80,16 @@ giwicd/
 │   │   ├── models/           # Data models
 │   │   ├── services/         # Build executor, Git service
 │   │   └── middleware/       # Auth, error handling
-│   └── data/db.json          # JSON database
+│   ├── data/                 # JSON database
+│   └── Dockerfile
 ├── frontend/                 # Angular SPA
-│   └── src/app/
-│       ├── pages/            # Page components
-│       ├── services/         # API, Auth, WebSocket
-│       └── guards/           # Route protection
-└── docs/                    # Documentation
+│   ├── src/app/
+│   │   ├── pages/            # Page components
+│   │   ├── services/         # API, Auth, WebSocket
+│   │   └── guards/           # Route protection
+│   └── Dockerfile.frontend
+├── docker-compose.yml
+└── README.md
 ```
 
 ## Tech Stack

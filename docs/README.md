@@ -9,7 +9,7 @@
 - **Real-time Builds** - Live build logs via WebSocket
 - **User Management** - Role-based access control (Admin/Contributor)
 - **Credential Manager** - Secure storage for SSH keys and tokens
-- **Notifications** - Send build status to Telegram, Slack, and Microsoft Teams
+- **Notifications** - Send build status to Telegram, Slack, Teams, and Email (SMTP)
 - **Push Polling** - Automatically detect new commits and trigger builds
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
@@ -79,6 +79,48 @@ On first startup, an admin user is created:
 - **Password**: admin123
 
 > ⚠️ Change this password immediately in production!
+
+### Docker Deployment
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Run in detached mode
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+```
+
+**Ports:**
+- Frontend: http://localhost:4200
+- Backend API: http://localhost:3000
+
+**Environment Variables:**
+
+Create a `.env` file or use environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | `change-me-in-production` | Secret for JWT tokens |
+| `PORT` | `3000` | Backend port |
+| `FRONTEND_URL` | `http://localhost:4200` | Frontend URL for CORS |
+| `NODE_ENV` | `production` | Node environment |
+
+**SMTP Configuration (for email notifications):**
+
+Add to backend `.env`:
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+SMTP_FROM=GiwiCD <noreply@example.com>
+```
 
 ## Project Structure
 
@@ -204,12 +246,19 @@ Credentials enable access to private repositories and notification services.
 
 #### Creating a Credential
 
-1. Navigate to `/settings/credentials`
-2. Click "New Credential"
+1. Navigate to `/settings/credentials` (Git credentials)
+2. Click "Add"
 3. Select type:
    - **Username/Password**: For basic auth
    - **Token**: Personal access token (GitHub, GitLab, Bitbucket)
    - **SSH Key**: Private key for SSH authentication
+
+For notification credentials, navigate to `/settings/notifications`:
+   - **Telegram Bot**: Bot Token from @BotFather
+   - **Slack Webhook**: Webhook URL
+   - **Teams Webhook**: Webhook URL
+   - **Email (SMTP)**: SMTP password (optional)
+
 4. Enter the details and save
 
 #### Using Credentials
@@ -229,16 +278,32 @@ GiwiCD supports sending build status notifications to multiple platforms.
 - **Telegram** - Send messages via Telegram Bot API
 - **Slack** - Send messages via Slack webhooks
 - **Teams** - Send messages via Microsoft Teams webhooks
+- **Email** - Send messages via SMTP
 
 #### Adding a Notification Step
 
 1. Edit a pipeline and add a new stage (e.g., "Notify")
 2. Click "Add Notification" dropdown
-3. Select a provider (Telegram, Slack, or Teams)
+3. Select a provider (Telegram, Slack, Teams, or Email)
 4. Configure:
    - **Telegram**: Bot Token (from @BotFather) and Chat ID
    - **Slack**: Webhook URL (from Slack App settings)
    - **Teams**: Webhook URL (from Teams incoming webhook connector)
+   - **Email**: Recipient email address (SMTP configured in server settings)
+
+#### Setting up Email Notifications
+
+1. Configure SMTP in the backend `.env` file:
+   ```
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_USER=your-user
+   SMTP_PASS=your-password
+   SMTP_FROM=GiwiCD <noreply@example.com>
+   ```
+2. Create a notification credential (Settings → Notifications → Add)
+3. Add the SMTP password to the credential (optional)
+4. In pipeline, select "Email" as notification provider
 
 #### Message Variables
 
@@ -385,7 +450,7 @@ Express.js
 ├── Services
 │   ├── BuildExecutor - Build execution engine
 │   ├── GitService - Git clone/pull operations
-│   ├── NotificationService - Telegram, Slack, Teams notifications
+│   ├── NotificationService - Telegram, Slack, Teams, Email notifications
 │   ├── PollingService - Git repository polling
 │   └── WebSocketManager - Real-time communication
 └── Middleware (JWT auth, error handling)

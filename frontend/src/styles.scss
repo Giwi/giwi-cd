@@ -47,6 +47,7 @@
   // Layout
   --sidebar-width: 280px;
   --topbar-height: 64px;
+  --footer-height: 48px;
   --radius-sm: 6px;
   --radius: 10px;
   --radius-lg: 14px;
@@ -455,7 +456,7 @@ body {
   flex: 1;
   margin-left: var(--sidebar-width);
   padding-top: var(--topbar-height);
-  min-height: 100vh;
+  min-height: calc(100vh - var(--footer-height, 60px));
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

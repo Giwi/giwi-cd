@@ -168,6 +168,10 @@ import { AuthService } from './services/auth.service';
             <router-outlet></router-outlet>
           </div>
         </main>
+
+        <footer class="app-footer">
+          <span>&copy; {{ currentYear }} <a href="https://giwi.fr" target="_blank" rel="noopener">GiwiSoft</a>. All rights reserved.</span>
+        </footer>
       </div>
     }
     <app-confirm-modal></app-confirm-modal>
@@ -175,8 +179,33 @@ import { AuthService } from './services/auth.service';
   styles: [`
     :host {
       display: block;
+      min-height: 100vh;
     }
-    
+
+    .app-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .app-wrapper.sidebar-collapsed {
+      min-height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-area {
+      flex: 1;
+    }
+
+    .app-footer {
+      margin-top: auto;
+    }
+
     .loading-screen {
       min-height: 100vh;
       display: flex;
@@ -265,10 +294,29 @@ import { AuthService } from './services/auth.service';
     .dropdown-divider {
       border-color: var(--border);
     }
+
+    .app-footer {
+      padding: 0.75rem 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      background: var(--bg-surface);
+      
+      a {
+        color: var(--text-primary);
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
   `]
 })
 export class App {
   protected readonly title = 'GiwiCD';
+  protected readonly currentYear = new Date().getFullYear();
   protected readonly themeService = inject(ThemeService);
   protected readonly authService = inject(AuthService);
   protected readonly isAdmin = this.authService.isAdmin;
