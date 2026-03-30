@@ -291,6 +291,8 @@ GiwiCD supports sending build status notifications to multiple platforms.
    - **Teams**: Webhook URL (from Teams incoming webhook connector)
    - **Email**: Recipient email address (SMTP configured in server settings)
 
+**Note:** Notification steps are executed after the build completes, so variables like `{{DURATION}}` will show the full build duration.
+
 #### Setting up Email Notifications
 
 1. Configure SMTP in the backend `.env` file:
@@ -365,7 +367,29 @@ Admins can manage users from `/settings/users`:
 
 ### Theme
 
-Toggle between light and dark mode using the sun/moon icon in the topbar.
+The application defaults to dark mode. Toggle between light and dark mode using the sun/moon icon in the topbar.
+
+### Webhooks
+
+Each pipeline has a webhook URL that can be used to trigger builds from external services (GitHub, GitLab, Bitbucket, etc.).
+
+#### Finding the Webhook URL
+
+1. Edit a pipeline
+2. The webhook URL is displayed in the "Webhook URL" section below the triggers
+3. Click the copy button to copy to clipboard
+
+#### Triggering a Build
+
+**GET Request (Manual):**
+```
+GET http://localhost:3000/api/webhooks/webhook/{pipelineId}
+```
+
+**POST Request (from Git provider):**
+Configure your Git provider to send POST requests to the webhook URL when code is pushed. The webhook accepts GitHub, GitLab, and Bitbucket Cloud push events.
+
+The push trigger must be enabled in the pipeline settings.
 
 ## API Reference
 
@@ -417,7 +441,8 @@ Toggle between light and dark mode using the sun/moon icon in the topbar.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/webhooks/:pipelineId` | Trigger build via webhook |
+| GET | `/api/webhooks/webhook/:pipelineId` | Trigger build via webhook (manual) |
+| POST | `/api/webhooks/webhook/:pipelineId` | Trigger build via webhook (from Git provider) |
 | POST | `/api/webhooks` | Trigger by repo URL |
 | GET | `/api/webhooks/generate/:pipelineId` | Generate webhook URL |
 
