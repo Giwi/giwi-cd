@@ -105,11 +105,14 @@ class BuildExecutor extends EventEmitter {
       }
 
       const finalStatus = allSuccess ? 'success' : 'failed';
+      const duration = this._getDuration(build.id);
       this._emit(build.id, allSuccess ? 'info' : 'error',
-        `\n${allSuccess ? '🎉 Build SUCCESS' : '💥 Build FAILED'} - Duration: ${this._getDuration(build.id)}s`);
+        `\n${allSuccess ? '🎉 Build SUCCESS' : '💥 Build FAILED'} - Duration: ${duration}`);
 
       Build.updateStatus(build.id, finalStatus);
       Pipeline.updateStatus(pipeline.id, 'inactive', finalStatus);
+
+      await this._sendBuildNotifications(build, pipeline, finalStatus);
       this.wsManager.broadcast({ type: 'build:complete', buildId: build.id, status: finalStatus });
 
     } catch (err) {
@@ -125,12 +128,7 @@ class BuildExecutor extends EventEmitter {
     const steps = stage.steps || [];
     for (const step of steps) {
       if (step.type === 'notification') {
-        this._emit(buildId, 'info', `  🔔 Notification: ${step.name || step.provider}`);
-        const build = Build.findById(buildId);
-        const success = await this.notificationService.send(buildId, step, build, pipeline);
-        if (!success && step.continueOnError !== true) {
-          return false;
-        }
+        continue;
       } else {
         const interpolatedCommand = this._interpolateCredentials(step.command, pipeline);
         this._emit(buildId, 'info', `  ▶ Step: ${step.name || interpolatedCommand}`);
@@ -291,6 +289,33 @@ class BuildExecutor extends EventEmitter {
 
   getRunningBuilds() {
     return Array.from(this.runningBuilds.keys());
+  }
+
+  async _sendBuildNotifications(build, pipeline, status) {
+    const notificationSteps = (pipeline.stages || [])
+      .flatMap(stage => stage.steps || [])
+      .filter(step => step.type === 'notification');
+
+    if (notificationSteps.length === 0) return;
+
+    const finalBuild = Build.findById(build.id);
+    for (const step of notificationSteps) {
+      this._emit(build.id, 'info', `  🔔 Sending completion notification: ${step.name || step.provider}`);
+      await this.notificationService.send(build.id, step, finalBuild, pipeline);
+    }
+  }
+
+  _getDuration(buildId) {
+    const build = Build.findById(buildId);
+    if (!build?.startedAt) return 'N/A';
+    const endTime = build.finishedAt || new Date().toISOString();
+    const seconds = Math.floor((new Date(endTime) - new Date(build.startedAt)) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m`;
   }
 }
 
