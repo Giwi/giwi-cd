@@ -532,24 +532,19 @@ export class PipelineFormComponent implements OnInit {
   }
 
   addNotificationStep(stageIndex: number, provider: string): void {
-    console.log('Adding notification step:', stageIndex, provider);
     const steps = this.getSteps(stageIndex);
     const stepIndex = steps.length;
     const key = this.getStepKey(stageIndex, stepIndex);
-    console.log('Step key:', key);
     
     steps.push(this.fb.control(`notification-${provider}`, Validators.required));
-    console.log('Added step control');
     
     this.addNotificationControl(stageIndex, key, 'channel', '');
     this.addNotificationControl(stageIndex, key, 'credentialId', '');
     this.addNotificationControl(stageIndex, key, 'message', this.getDefaultMessage());
-    console.log('Added notification controls');
     
     const newMap = new Map(this.notificationSteps());
     newMap.set(key, { provider, channel: '', credentialId: '', message: this.getDefaultMessage() });
     this.notificationSteps.set(newMap);
-    console.log('Form value after adding:', JSON.stringify(this.form.value));
   }
 
   convertToNotification(stageIndex: number, stepIndex: number, provider: string): void {
@@ -705,20 +700,11 @@ export class PipelineFormComponent implements OnInit {
     this.formSubmitted.set(true);
     
     if (this.form.invalid) {
-      console.log('Form invalid:', this.form.errors);
-      console.log('Form value:', JSON.stringify(this.form.value, null, 2));
-      Object.keys(this.form.controls).forEach(key => {
-        const control = this.form.get(key);
-        if (control?.invalid) {
-          console.log(`Field ${key} is invalid:`, control.errors);
-        }
-      });
       return;
     }
     
     this.submitting.set(true);
     const rawValue = this.form.getRawValue();
-    console.log('Submitting form:', JSON.stringify(rawValue, null, 2));
     const stagesData = (rawValue.stages || []).map((stage: any, sIdx: number) => {
       const steps: any[] = [];
       const notificationData = stage.notificationData || {};

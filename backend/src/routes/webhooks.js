@@ -14,9 +14,7 @@ function matchesRepo(pipelineUrl, webhookUrl) {
 }
 
 router.get('/webhook/:pipelineId', (req, res) => {
-  console.log('[Webhook] GET received for pipeline:', req.params.pipelineId);
   const pipeline = Pipeline.findById(req.params.pipelineId);
-  console.log('[Webhook] Pipeline found:', pipeline ? pipeline.name : 'NOT FOUND');
   if (!pipeline) {
     return res.status(404).json({ error: 'Pipeline not found' });
   }
@@ -51,12 +49,7 @@ router.get('/webhook/:pipelineId', (req, res) => {
 });
 
 router.post('/webhook/:pipelineId', (req, res) => {
-  console.log('[Webhook] POST received for pipeline:', req.params.pipelineId);
-  console.log('[Webhook] All pipelines:', JSON.stringify(Pipeline.findAll().map(p => ({ id: p.id, name: p.name }))));
   const pipeline = Pipeline.findById(req.params.pipelineId);
-  console.log('[Webhook] Pipeline found:', pipeline ? pipeline.name : 'NOT FOUND');
-  console.log('[Webhook] Pipeline enabled:', pipeline?.enabled);
-  console.log('[Webhook] Pipeline triggers:', pipeline?.triggers);
   if (!pipeline) {
     return res.status(404).json({ error: 'Pipeline not found' });
   }
@@ -70,7 +63,6 @@ router.post('/webhook/:pipelineId', (req, res) => {
   }
 
   const executor = req.app.get('buildExecutor');
-  console.log('[Webhook] Executor found:', !!executor);
   if (!executor) {
     return res.status(500).json({ error: 'Build executor not available' });
   }

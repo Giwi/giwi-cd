@@ -11,7 +11,6 @@ class NotificationService {
 
   async send(buildId, notification, build, pipeline) {
     const { provider, credentialId, channel, message, webhookUrl } = notification;
-    console.log('[NotificationService.send] notification:', notification);
 
     if (!provider) {
       return { success: false, error: 'Provider is required' };
@@ -30,23 +29,18 @@ class NotificationService {
     let apiKey = null;
     let chatId = channel;
     
-    console.log('[NotificationService] START - credentialId:', credentialId, 'provider:', provider, 'channel:', channel);
     if (credentialId) {
       const cred = Credential.getRaw(credentialId);
-      console.log('[NotificationService] Found cred:', cred ? { ...cred, token: cred.token ? '***' + cred.token.slice(-4) : null } : null);
       if (cred) {
         if (cred.type === provider || cred.type === 'token') {
           apiKey = cred.token;
           chatId = cred.username || channel;
-          console.log('[NotificationService] Set from token type - apiKey:', apiKey ? '***' + apiKey.slice(-4) : null, 'chatId:', chatId);
         } else if (cred.type === 'username-password') {
           apiKey = cred.token || cred.password;
           chatId = cred.username || channel;
-          console.log('[NotificationService] Set from username-password - apiKey:', apiKey ? '***' + apiKey.slice(-4) : null, 'chatId:', chatId);
         }
       }
     }
-    console.log('[NotificationService] FINAL - apiKey:', apiKey ? '***' + apiKey.slice(-4) : null, 'chatId:', chatId);
 
     if (!apiKey && channel && (channel.startsWith('http') || channel.includes(':'))) {
       webhookUrl = channel;

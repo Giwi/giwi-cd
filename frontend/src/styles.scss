@@ -759,6 +759,7 @@ body {
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .stat-card {

@@ -138,13 +138,7 @@ export class PipelineListComponent implements OnInit {
   }
 
   triggerBuild(pipeline: Pipeline): void {
-    this.api.post<ApiResponse<unknown>>(`/pipelines/${pipeline.id}/trigger`).subscribe({
-      next: (res) => {
-        if (res.success) {
-          console.log('Build triggered:', res.data);
-        }
-      }
-    });
+    this.api.post<ApiResponse<unknown>>(`/pipelines/${pipeline.id}/trigger`).subscribe();
   }
 
   togglePipeline(pipeline: Pipeline): void {
