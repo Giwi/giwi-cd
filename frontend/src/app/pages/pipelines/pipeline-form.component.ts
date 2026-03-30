@@ -425,7 +425,7 @@ export class PipelineFormComponent implements OnInit {
   }
 
   getNotificationCredentials(): Credential[] {
-    return this.credentials().filter(c => ['telegram', 'slack', 'teams', 'mail'].includes(c.type));
+    return (this.credentials() || []).filter(c => ['telegram', 'slack', 'teams', 'mail'].includes(c.type));
   }
 
   getNotificationChannelControl(stageIndex: number, stepIndex: number): string {
@@ -676,7 +676,7 @@ export class PipelineFormComponent implements OnInit {
   }
 
   getGitCredentials(): Credential[] {
-    return this.credentials().filter(c => !['telegram', 'slack', 'teams', 'mail'].includes(c.type));
+    return (this.credentials() || []).filter(c => !['telegram', 'slack', 'teams', 'mail'].includes(c.type));
   }
 
   getCredIcon(type: string): string {

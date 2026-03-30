@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AdminService } from '../../../services/admin.service';
 import { AdminSettings } from '../../../models/admin.types';
 
@@ -28,7 +29,7 @@ import { AdminSettings } from '../../../models/admin.types';
         <div class="form-section">
           <div class="form-section-title">
             <i class="bi bi-person-plus"></i>
-            Registration Settings
+            Registration
           </div>
           
           <div class="form-group">
@@ -54,54 +55,55 @@ import { AdminSettings } from '../../../models/admin.types';
             @if (isSaving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             }
-            Save Settings
+            Save
           </button>
         </div>
-      </div>
 
-      <div class="col-lg-6">
         <div class="form-section">
           <div class="form-section-title">
             <i class="bi bi-gear"></i>
             Build Settings
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="maxConcurrentBuilds">Max Concurrent Builds</label>
-            <input 
-              type="number" 
-              class="form-control" 
-              id="maxConcurrentBuilds"
-              [(ngModel)]="maxConcurrentBuilds"
-              min="1"
-              max="10"
-            />
-            <div class="form-text">Maximum number of builds that can run simultaneously (1-10)</div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="defaultTimeout">Default Timeout (seconds)</label>
-            <input 
-              type="number" 
-              class="form-control" 
-              id="defaultTimeout"
-              [(ngModel)]="defaultTimeout"
-              min="60"
-            />
-            <div class="form-text">Default timeout for builds in seconds (minimum 60)</div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="retentionDays">Build Retention (days)</label>
-            <input 
-              type="number" 
-              class="form-control" 
-              id="retentionDays"
-              [(ngModel)]="retentionDays"
-              min="1"
-              max="365"
-            />
-            <div class="form-text">Number of days to keep build history (1-365)</div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group mb-3">
+                <label class="form-label" for="maxConcurrentBuilds">Max Concurrent</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  id="maxConcurrentBuilds"
+                  [(ngModel)]="maxConcurrentBuilds"
+                  min="1"
+                  max="10"
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group mb-3">
+                <label class="form-label" for="defaultTimeout">Timeout (sec)</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  id="defaultTimeout"
+                  [(ngModel)]="defaultTimeout"
+                  min="60"
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group mb-3">
+                <label class="form-label" for="retentionDays">Retention (days)</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  id="retentionDays"
+                  [(ngModel)]="retentionDays"
+                  min="1"
+                  max="365"
+                />
+              </div>
+            </div>
           </div>
 
           <button 
@@ -112,18 +114,20 @@ import { AdminSettings } from '../../../models/admin.types';
             @if (isSaving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             }
-            Save Settings
+            Save
           </button>
         </div>
+      </div>
 
+      <div class="col-lg-6">
         <div class="form-section">
           <div class="form-section-title">
             <i class="bi bi-arrow-repeat"></i>
-            Polling Settings
+            Polling
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="pollingInterval">Polling Interval (seconds)</label>
+          <div class="form-group mb-3">
+            <label class="form-label" for="pollingInterval">Polling Interval (sec)</label>
             <input 
               type="number" 
               class="form-control" 
@@ -132,7 +136,7 @@ import { AdminSettings } from '../../../models/admin.types';
               min="10"
               max="3600"
             />
-            <div class="form-text">How often to poll repositories for changes when "On push" trigger is enabled (10-3600 seconds)</div>
+            <div class="form-text">How often to poll repositories when "On push" trigger is enabled</div>
           </div>
 
           <button 
@@ -143,56 +147,60 @@ import { AdminSettings } from '../../../models/admin.types';
             @if (isSaving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             }
-            Save Settings
+            Save
           </button>
         </div>
-      </div>
 
-      <div class="col-lg-6">
         <div class="form-section">
           <div class="form-section-title">
             <i class="bi bi-bell"></i>
             Notification Defaults
           </div>
-          <p class="text-muted small mb-3">Configure default values for notification steps. These can be overridden in individual pipelines.</p>
+          <p class="text-muted small mb-3">Configure defaults for notification steps</p>
 
-          <div class="form-group">
-            <label class="form-label">
-              <i class="bi bi-telegram text-primary me-1"></i> Telegram
-            </label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="telegramDefaultChannel"
-              [(ngModel)]="telegramDefaultChannel"
-              placeholder="Chat ID (ex: -1001234567890)"
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">
-              <i class="bi bi-chat-dots text-danger me-1"></i> Slack
-            </label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="slackDefaultChannel"
-              [(ngModel)]="slackDefaultChannel"
-              placeholder="Channel name (ex: #builds)"
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">
-              <i class="bi bi-people text-primary me-1"></i> Microsoft Teams
-            </label>
-            <input 
-              type="text" 
-              class="form-control" 
-              id="teamsDefaultChannel"
-              [(ngModel)]="teamsDefaultChannel"
-              placeholder="Team channel name (ex: CI/CD)"
-            />
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group mb-3">
+                <label class="form-label">
+                  <i class="bi bi-telegram text-info me-1"></i> Telegram
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="telegramDefaultChannel"
+                  [(ngModel)]="telegramDefaultChannel"
+                  placeholder="Chat ID"
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group mb-3">
+                <label class="form-label">
+                  <i class="bi bi-chat-dots text-danger me-1"></i> Slack
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="slackDefaultChannel"
+                  [(ngModel)]="slackDefaultChannel"
+                  placeholder="#channel"
+                />
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group mb-3">
+                <label class="form-label">
+                  <i class="bi bi-people text-primary me-1"></i> Teams
+                </label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="teamsDefaultChannel"
+                  [(ngModel)]="teamsDefaultChannel"
+                  placeholder="Channel"
+                />
+              </div>
+            </div>
           </div>
 
           <button 
@@ -203,50 +211,16 @@ import { AdminSettings } from '../../../models/admin.types';
             @if (isSaving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             }
-            Save Settings
+            Save
           </button>
         </div>
       </div>
     </div>
-  `,
-  styles: [`
-    .row {
-      display: flex;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-    }
-    
-    .col-lg-6 {
-      flex: 1;
-      min-width: 300px;
-    }
-    
-    .form-group {
-      margin-bottom: 1.25rem;
-    }
-    
-    .form-check {
-      padding: 1rem;
-      background: var(--bg-muted);
-      border-radius: var(--radius);
-      padding-left: 3rem;
-    }
-    
-    .form-check-input {
-      width: 1.5rem;
-      height: 1.5rem;
-      margin-top: 0;
-      cursor: pointer;
-    }
-    
-    .form-check-input:checked {
-      background-color: var(--primary);
-      border-color: var(--primary);
-    }
-  `]
+  `
 })
 export class SettingsComponent implements OnInit {
   private adminService = inject(AdminService);
+  private router = inject(Router);
 
   allowRegistration = true;
   maxConcurrentBuilds = 3;

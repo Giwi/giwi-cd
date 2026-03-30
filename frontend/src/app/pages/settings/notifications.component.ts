@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { ConfirmService } from '../../services/confirm.service';
+import { ToastService } from '../../services/toast.service';
 import { Credential, ApiResponse } from '../../models/types';
 
 @Component({
@@ -140,6 +141,7 @@ export class NotificationsComponent implements OnInit {
   testMessage = '🧪 Test notification from GiwiCD';
   sendingTest = signal(false);
   private confirmService = inject(ConfirmService);
+  private toastService = inject(ToastService);
 
   constructor(private api: ApiService) {}
 
@@ -152,7 +154,7 @@ export class NotificationsComponent implements OnInit {
     this.api.get<ApiResponse<Credential[]>>('/credentials').subscribe({
       next: (res) => {
         const notifTypes = ['telegram', 'slack', 'teams', 'mail'];
-        this.credentials.set(res.data.filter(c => notifTypes.includes(c.type)));
+        this.credentials.set((res.data || []).filter(c => notifTypes.includes(c.type)));
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
@@ -228,15 +230,15 @@ export class NotificationsComponent implements OnInit {
       next: (res) => {
         this.sendingTest.set(false);
         if (res.success) {
-          alert('✅ ' + (res.message || 'Test notification sent!'));
+          this.toastService.success(res.message || 'Test notification sent!');
           this.closeTestModal();
         } else {
-          alert('❌ ' + (res.error || 'Failed to send test notification'));
+          this.toastService.error(res.error || 'Failed to send test notification');
         }
       },
       error: (err) => {
         this.sendingTest.set(false);
-        alert('❌ ' + (err.error?.error || 'Failed to send test notification'));
+        this.toastService.error(err.error?.error || 'Failed to send test notification');
       }
     });
   }

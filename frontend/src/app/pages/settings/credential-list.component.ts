@@ -119,7 +119,7 @@ export class CredentialListComponent implements OnInit {
     this.api.get<ApiResponse<Credential[]>>('/credentials').subscribe({
       next: (res) => {
         const gitTypes = ['username-password', 'token', 'ssh-key'];
-        this.gitCredentials.set(res.data.filter(c => gitTypes.includes(c.type)));
+        this.gitCredentials.set((res.data || []).filter(c => gitTypes.includes(c.type)));
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
