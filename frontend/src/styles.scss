@@ -189,6 +189,7 @@
       background: var(--bg-elevated) !important;
       border-color: var(--border) !important;
       color: var(--text-secondary) !important;
+      border-radius: 0 !important;
     }
 
     td, tbody td {
@@ -1181,9 +1182,16 @@ body {
 // Build history table
 .build-table {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border);
+
+  thead th:first-child {
+    border-top-left-radius: 0;
+  }
+  
+  thead th:last-child {
+    border-top-right-radius: 0;
+  }
 
   th {
     font-size: 0.75rem;
