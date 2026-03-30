@@ -1388,6 +1388,32 @@ body {
     background: var(--danger-light);
     color: var(--danger);
   }
+
+  &.alert-secondary {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+  }
+}
+
+// Notification step card backgrounds
+.notification-telegram {
+  background: var(--info-light) !important;
+}
+
+.notification-slack {
+  background: var(--danger-light) !important;
+}
+
+.notification-teams {
+  background: var(--primary-ghost) !important;
+}
+
+.notification-mail {
+  background: var(--success-light) !important;
+}
+
+.notification-default {
+  background: var(--bg-elevated) !important;
 }
 
 // Dropdown

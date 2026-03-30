@@ -2,13 +2,14 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
+import { ToastComponent } from './components/toast.component';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, ConfirmModalComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, ConfirmModalComponent, ToastComponent],
   template: `
     @if (authService.isLoading()) {
       <div class="loading-screen">
@@ -175,6 +176,7 @@ import { AuthService } from './services/auth.service';
       </div>
     }
     <app-confirm-modal></app-confirm-modal>
+    <app-toast></app-toast>
   `,
   styles: [`
     :host {

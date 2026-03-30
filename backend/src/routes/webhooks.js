@@ -14,7 +14,10 @@ function matchesRepo(pipelineUrl, webhookUrl) {
 }
 
 router.post('/webhook/:pipelineId', (req, res) => {
+  console.log('[Webhook] Received webhook for pipeline:', req.params.pipelineId);
+  console.log('[Webhook] Headers:', JSON.stringify(req.headers));
   const pipeline = Pipeline.findById(req.params.pipelineId);
+  console.log('[Webhook] Pipeline found:', pipeline ? pipeline.name : 'NOT FOUND');
   if (!pipeline) {
     return res.status(404).json({ error: 'Pipeline not found' });
   }

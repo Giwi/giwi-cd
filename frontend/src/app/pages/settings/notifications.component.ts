@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { ConfirmService } from '../../services/confirm.service';
@@ -8,7 +9,7 @@ import { Credential, ApiResponse } from '../../models/types';
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="page-header">
       <div>
@@ -101,11 +102,43 @@ import { Credential, ApiResponse } from '../../models/types';
         }
       </div>
     }
+
+    @if (showTestModal()) {
+      <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Test {{ getTypeLabel(testCredentialData()?.type || '') }}</h5>
+              <button type="button" class="btn-close" (click)="closeTestModal()"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Message</label>
+                <textarea class="form-control" rows="4" [(ngModel)]="testMessage" placeholder="Enter test message..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeTestModal()">Cancel</button>
+              <button type="button" class="btn btn-primary" (click)="sendTestNotification()" [disabled]="sendingTest()">
+                @if (sendingTest()) {
+                  <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Send Test
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `
 })
 export class NotificationsComponent implements OnInit {
   credentials = signal<Credential[]>([]);
   loading = signal(true);
+  showTestModal = signal(false);
+  testCredentialData = signal<Credential | null>(null);
+  testMessage = '🧪 Test notification from GiwiCD';
+  sendingTest = signal(false);
   private confirmService = inject(ConfirmService);
 
   constructor(private api: ApiService) {}
@@ -173,19 +206,36 @@ export class NotificationsComponent implements OnInit {
   }
 
   testCredential(cred: Credential): void {
-    const channel = prompt(`Enter the ${this.getChannelLabel(cred.type)} for testing (or leave empty for default):`);
-    this.api.post<{ success: boolean; message?: string; error?: string }>(`/credentials/${cred.id}/test`, {
+    this.testCredentialData.set(cred);
+    this.testMessage = '🧪 Test notification from GiwiCD';
+    this.showTestModal.set(true);
+  }
+
+  closeTestModal(): void {
+    this.showTestModal.set(false);
+    this.testCredentialData.set(null);
+  }
+
+  sendTestNotification(): void {
+    const cred = this.testCredentialData();
+    if (!cred) return;
+
+    this.sendingTest.set(true);
+    this.api.post<{ success: boolean; message?: string; error: string }>(`/credentials/${cred.id}/test`, {
       provider: cred.type,
-      channel: channel || undefined
+      message: this.testMessage
     }).subscribe({
       next: (res) => {
+        this.sendingTest.set(false);
         if (res.success) {
           alert('✅ ' + (res.message || 'Test notification sent!'));
+          this.closeTestModal();
         } else {
           alert('❌ ' + (res.error || 'Failed to send test notification'));
         }
       },
       error: (err) => {
+        this.sendingTest.set(false);
         alert('❌ ' + (err.error?.error || 'Failed to send test notification'));
       }
     });

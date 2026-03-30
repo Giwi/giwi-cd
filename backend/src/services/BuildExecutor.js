@@ -30,10 +30,12 @@ class BuildExecutor extends EventEmitter {
     this._emit(build.id, 'info', `⏱️ Started at: ${new Date().toLocaleString()}`);
 
     if (pipeline.repositoryUrl) {
+      const branch = build.branch || pipeline.branch;
+      this._emit(build.id, 'info', `📦 Checking out branch: ${branch}`);
       const cloneResult = await this.gitService.cloneOrPull(
         build.id,
         pipeline.repositoryUrl,
-        build.branch || pipeline.branch,
+        branch,
         pipeline.credentialId
       );
 
@@ -49,7 +51,10 @@ class BuildExecutor extends EventEmitter {
       this._emit(build.id, 'info', `📁 Working directory: ${workDir}`);
 
       if (build.commit) {
+        this._emit(build.id, 'info', `🏷️ Checking out commit: ${build.commit.substring(0, 7)}`);
         await this.gitService.checkoutCommit(build.id, workDir, build.commit);
+      } else {
+        this._emit(build.id, 'info', `✅ Branch ${branch} checked out`);
       }
     } else {
       workDir = this.gitService.getWorkspaceDir();

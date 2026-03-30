@@ -405,7 +405,7 @@ export class CredentialFormComponent implements OnInit {
       next: (res) => {
         this.submitting.set(false);
         if (res.success) {
-          this.router.navigate(['/settings/credentials']);
+          this.router.navigate(['/settings/notifications']);
         }
       },
       error: () => this.submitting.set(false)

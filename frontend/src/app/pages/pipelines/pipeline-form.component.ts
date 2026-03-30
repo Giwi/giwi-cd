@@ -1,8 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
+import { ToastService } from '../../services/toast.service';
 import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/types';
 
 interface NotificationStep {
@@ -156,7 +157,7 @@ interface NotificationStep {
                                     </select>
                                   </div>
                                   <div class="col-md-4">
-                                    <select class="form-select form-select-sm" [formControlName]="getNotificationCredentialControl(i, j)">
+                                    <select class="form-select form-select-sm" [formControl]="getNotificationFormControl(i, j, 'credentialId')">
                                       <option value="">Select credential</option>
                                       @for (cred of getNotificationCredentials(); track cred.id) {
                                         <option [value]="cred.id">{{ cred.name }}</option>
@@ -165,13 +166,13 @@ interface NotificationStep {
                                   </div>
                                   <div class="col-md-4">
                                     <input type="text" class="form-control form-control-sm" [placeholder]="getChannelPlaceholder(i, j)"
-                                           [formControlName]="getNotificationChannelControl(i, j)">
+                                           [formControl]="getNotificationFormControl(i, j, 'channel')">
                                   </div>
                                 </div>
                                 <div class="row g-2 mt-2">
                                   <div class="col-12">
                                     <textarea class="form-control form-control-sm" rows="2" [placeholder]="getMessagePlaceholder()"
-                                              [formControlName]="getNotificationMessageControl(i, j)"></textarea>
+                                              [formControl]="getNotificationFormControl(i, j, 'message')"></textarea>
                                     <div class="form-text small">Variables: {{ '{{PIPELINE_NAME}}' }}, {{ '{{BRANCH}}' }}, {{ '{{STATUS}}' }}, {{ '{{BUILD_NUMBER}}' }}, {{ '{{COMMIT}}' }}, {{ '{{DURATION}}' }}</div>
                                   </div>
                                 </div>
@@ -183,15 +184,6 @@ interface NotificationStep {
                               <input type="text" class="form-control" [formControlName]="j" placeholder="npm install"
                                      [class.is-invalid]="getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())"
                                      [class.is-valid]="getStepControl(i, j)?.valid && getStepControl(i, j)?.touched">
-                              <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" (click)="$event.stopPropagation()">
-                                <span class="visually-hidden">Toggle step type</span>
-                              </button>
-                              <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'telegram')"><i class="bi bi-telegram me-2"></i>Telegram</a></li>
-                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'slack')"><i class="bi bi-chat-dots me-2"></i>Slack</a></li>
-                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'teams')"><i class="bi bi-people me-2"></i>Teams</a></li>
-                                <li><a class="dropdown-item" (click)="convertToNotification(i, j, 'mail')"><i class="bi bi-envelope me-2"></i>Mail</a></li>
-                              </ul>
                               <button type="button" class="btn btn-outline-danger" (click)="removeStep(i, j)">
                                 <i class="bi bi-x"></i>
                               </button>
@@ -259,43 +251,15 @@ interface NotificationStep {
               </div>
             </ng-container>
 
-            @if (getGitCredentials().length > 0) {
-              <div class="form-section-title mt-4">
-                <i class="bi bi-key"></i> Variables Git
-              </div>
-              <div class="alert alert-info py-2 small mb-0">
-                <p class="mb-1">Utilisez les variables dans vos commandes:</p>
-                <ul class="mb-0 small">
-                  @for (cred of getGitCredentials(); track cred.id) {
-                    <li><code>{{ getCredVar(cred.name) }}</code></li>
-                  }
-                </ul>
-              </div>
-            }
-            
-            @if (getNotificationCredentials().length > 0) {
-              <div class="form-section-title mt-4">
-                <i class="bi bi-bell"></i> Notifications
-              </div>
-              <div class="alert alert-success py-2 small mb-0">
-                <p class="mb-1">Credenciales de notificación disponibles:</p>
-                <ul class="mb-0 small">
-                  @for (cred of getNotificationCredentials(); track cred.id) {
-                    <li><i class="bi bi-{{ getCredIcon(cred.type) }} me-1"></i> {{ cred.name }}</li>
-                  }
-                </ul>
-              </div>
-            }
-
             @if (isEdit() && pipeline()) {
               <div class="form-section-title mt-4">
-                <i class="bi bi-webhook"></i> Webhook URL
+                <i class="bi bi-globe"></i> Webhook URL
               </div>
               <div class="alert alert-secondary py-2 small mb-0">
                 <p class="mb-2 small">Use this URL to trigger builds automatically:</p>
                 <div class="input-group input-group-sm">
                   <input type="text" class="form-control" [value]="getWebhookUrl()" readonly #webhookInput>
-                  <button class="btn btn-outline-secondary" (click)="copyWebhookUrl(webhookInput)" title="Copy">
+                  <button type="button" class="btn btn-outline-secondary" (click)="copyWebhookUrl(webhookInput)" title="Copy">
                     <i class="bi bi-clipboard"></i>
                   </button>
                 </div>
@@ -312,10 +276,6 @@ interface NotificationStep {
             <hr class="my-4">
 
             <div class="d-grid gap-2">
-              <div class="alert alert-{{ form.valid ? 'success' : 'warning' }} py-2 small mb-3">
-                <i class="bi bi-{{ form.valid ? 'check-circle' : 'exclamation-triangle' }} me-1"></i>
-                {{ form.valid ? 'Form is valid' : 'Please fill in all required fields' }}
-              </div>
               <button type="submit" class="btn btn-{{ form.valid ? 'primary' : 'secondary' }}" [disabled]="form.invalid || submitting()">
                 @if (submitting()) {
                   <span class="spinner-border spinner-border-sm me-1"></span>
@@ -336,7 +296,8 @@ export class PipelineFormComponent implements OnInit {
   credentials = signal<Credential[]>([]);
   submitting = signal(false);
   formSubmitted = signal(false);
-  notificationSteps = signal<Map<string, { provider: string; channel: string }>>(new Map());
+  notificationSteps = signal<Map<string, { provider: string; channel: string; credentialId?: string; message?: string }>>(new Map());
+  private toastService = inject(ToastService);
 
   constructor(
     private fb: FormBuilder,
@@ -415,6 +376,7 @@ export class PipelineFormComponent implements OnInit {
       }
     });
 
+    this.notificationSteps.set(new Map());
     this.stages.clear();
     (pipeline.stages || []).forEach((stage, sIdx) => {
       this.addStage(stage, sIdx);
@@ -425,7 +387,8 @@ export class PipelineFormComponent implements OnInit {
     const stageGroup = this.fb.group({
       name: [stageData?.name || '', Validators.required],
       continueOnError: [stageData?.continueOnError || false],
-      steps: this.fb.array([])
+      steps: this.fb.array([]),
+      notificationData: this.fb.group({})
     });
 
     (stageData?.steps || []).forEach((step, stepIdx) => {
@@ -466,26 +429,26 @@ export class PipelineFormComponent implements OnInit {
   }
 
   getNotificationChannelControl(stageIndex: number, stepIndex: number): string {
-    return 'ch-' + this.getStepKey(stageIndex, stepIndex);
+    return `${stageIndex}-${stepIndex}-channel`;
   }
 
   getNotificationCredentialControl(stageIndex: number, stepIndex: number): string {
-    return 'cred-' + this.getStepKey(stageIndex, stepIndex);
+    return `${stageIndex}-${stepIndex}-credentialId`;
   }
 
   getNotificationMessageControl(stageIndex: number, stepIndex: number): string {
-    return 'msg-' + this.getStepKey(stageIndex, stepIndex);
+    return `${stageIndex}-${stepIndex}-message`;
   }
 
   getProviderCardClass(stageIndex: number, stepIndex: number): string {
     const provider = this.getStepProvider(stageIndex, stepIndex);
     const colors: Record<string, string> = {
-      'telegram': 'bg-info-subtle',
-      'slack': 'bg-danger-subtle',
-      'teams': 'bg-primary-subtle',
-      'mail': 'bg-success-subtle'
+      'telegram': 'notification-telegram',
+      'slack': 'notification-slack',
+      'teams': 'notification-teams',
+      'mail': 'notification-mail'
     };
-    return colors[provider] || 'bg-muted';
+    return colors[provider] || 'notification-default';
   }
 
   getProviderBadgeClass(stageIndex: number, stepIndex: number): string {
@@ -521,14 +484,46 @@ export class PipelineFormComponent implements OnInit {
     return 'Message (optional). Example: ✅ Build #{{BUILD_NUMBER}} completed in {{DURATION}}';
   }
 
-  private ensureControlExists(stageIndex: number, controlName: string, defaultValue: string = ''): string {
-    const steps = this.getSteps(stageIndex);
-    let control = steps.get(controlName);
+  getNotificationFormControl(stageIndex: number, stepIndex: number, field: string): any {
+    const key = `${stageIndex}-${stepIndex}`;
+    const notifData = this.getNotificationDataGroup(stageIndex);
+    const control = notifData?.get(`${key}-${field}`);
     if (!control) {
-      control = this.fb.control(defaultValue);
-      (steps as any).push(control);
+      this.addNotificationControl(stageIndex, key, field, '');
     }
-    return controlName;
+    return notifData?.get(`${key}-${field}`) || this.fb.control('');
+  }
+
+  private getNotificationDataGroup(stageIndex: number): FormGroup {
+    return this.stages.at(stageIndex).get('notificationData') as FormGroup;
+  }
+
+  private addNotificationControl(stageIndex: number, key: string, field: string, defaultValue: string): void {
+    const notifData = this.getNotificationDataGroup(stageIndex);
+    const controlName = `${key}-${field}`;
+    if (notifData && !notifData.get(controlName)) {
+      notifData.addControl(controlName, this.fb.control(defaultValue));
+    }
+  }
+
+  private removeNotificationControl(stageIndex: number, key: string, field: string): void {
+    const notifData = this.getNotificationDataGroup(stageIndex);
+    const controlName = `${key}-${field}`;
+    if (notifData && notifData.get(controlName)) {
+      notifData.removeControl(controlName);
+    }
+  }
+
+  private getNotificationControlValue(stageIndex: number, stepIndex: number, field: string): string {
+    const key = this.getStepKey(stageIndex, stepIndex);
+    const notifData = this.getNotificationDataGroup(stageIndex);
+    return notifData?.get(`${key}-${field}`)?.value || '';
+  }
+
+  private setNotificationControlValue(stageIndex: number, stepIndex: number, field: string, value: string): void {
+    const key = this.getStepKey(stageIndex, stepIndex);
+    const notifData = this.getNotificationDataGroup(stageIndex);
+    notifData?.get(`${key}-${field}`)?.setValue(value);
   }
 
   addStep(stageIndex: number): void {
@@ -537,18 +532,24 @@ export class PipelineFormComponent implements OnInit {
   }
 
   addNotificationStep(stageIndex: number, provider: string): void {
+    console.log('Adding notification step:', stageIndex, provider);
     const steps = this.getSteps(stageIndex);
     const stepIndex = steps.length;
     const key = this.getStepKey(stageIndex, stepIndex);
+    console.log('Step key:', key);
     
     steps.push(this.fb.control(`notification-${provider}`, Validators.required));
-    this.ensureControlExists(stageIndex, 'ch-' + key, '');
-    this.ensureControlExists(stageIndex, 'cred-' + key, '');
-    this.ensureControlExists(stageIndex, 'msg-' + key, this.getDefaultMessage());
+    console.log('Added step control');
+    
+    this.addNotificationControl(stageIndex, key, 'channel', '');
+    this.addNotificationControl(stageIndex, key, 'credentialId', '');
+    this.addNotificationControl(stageIndex, key, 'message', this.getDefaultMessage());
+    console.log('Added notification controls');
     
     const newMap = new Map(this.notificationSteps());
-    newMap.set(key, { provider, channel: '' });
+    newMap.set(key, { provider, channel: '', credentialId: '', message: this.getDefaultMessage() });
     this.notificationSteps.set(newMap);
+    console.log('Form value after adding:', JSON.stringify(this.form.value));
   }
 
   convertToNotification(stageIndex: number, stepIndex: number, provider: string): void {
@@ -556,12 +557,12 @@ export class PipelineFormComponent implements OnInit {
     const steps = this.getSteps(stageIndex);
     steps.at(stepIndex).setValue(`notification-${provider}`);
     
-    this.ensureControlExists(stageIndex, 'ch-' + key, '');
-    this.ensureControlExists(stageIndex, 'cred-' + key, '');
-    this.ensureControlExists(stageIndex, 'msg-' + key, this.getDefaultMessage());
+    this.addNotificationControl(stageIndex, key, 'channel', '');
+    this.addNotificationControl(stageIndex, key, 'credentialId', '');
+    this.addNotificationControl(stageIndex, key, 'message', this.getDefaultMessage());
     
     const newMap = new Map(this.notificationSteps());
-    newMap.set(key, { provider, channel: '' });
+    newMap.set(key, { provider, channel: '', credentialId: '', message: this.getDefaultMessage() });
     this.notificationSteps.set(newMap);
   }
 
@@ -571,15 +572,19 @@ export class PipelineFormComponent implements OnInit {
     const key = this.getStepKey(stageIndex, stepIndex);
     
     if (value.startsWith('notification-')) {
-      this.ensureControlExists(stageIndex, 'ch-' + key, '');
-      this.ensureControlExists(stageIndex, 'cred-' + key, '');
-      this.ensureControlExists(stageIndex, 'msg-' + key, this.getDefaultMessage());
+      this.addNotificationControl(stageIndex, key, 'channel', '');
+      this.addNotificationControl(stageIndex, key, 'credentialId', '');
+      this.addNotificationControl(stageIndex, key, 'message', this.getDefaultMessage());
       
       const newMap = new Map(this.notificationSteps());
-      const existing = newMap.get(key) || { provider, channel: '' };
+      const existing = newMap.get(key) || { provider, channel: '', credentialId: '', message: '' };
       newMap.set(key, { ...existing, provider });
       this.notificationSteps.set(newMap);
     } else {
+      this.removeNotificationControl(stageIndex, key, 'channel');
+      this.removeNotificationControl(stageIndex, key, 'credentialId');
+      this.removeNotificationControl(stageIndex, key, 'message');
+      
       const newMap = new Map(this.notificationSteps());
       newMap.delete(key);
       this.notificationSteps.set(newMap);
@@ -595,19 +600,35 @@ export class PipelineFormComponent implements OnInit {
 
   private addStepToStage(stageGroup: FormGroup, stepData?: Step, stageIndex?: number, stepIdx?: number): void {
     const steps = stageGroup.get('steps') as FormArray;
+    const notifData = stageGroup.get('notificationData') as FormGroup;
     const sIdx = stageIndex ?? this.stages.length;
     const stIdx = stepIdx ?? steps.length;
     
     if (stepData?.type === 'notification' && stepData.provider) {
       const key = this.getStepKey(sIdx, stIdx);
       const newMap = new Map(this.notificationSteps());
-      newMap.set(key, { provider: stepData.provider, channel: stepData.channel || '' });
+      newMap.set(key, { 
+        provider: stepData.provider, 
+        channel: stepData.channel || '',
+        credentialId: stepData.credentialId || '',
+        message: stepData.message || this.getDefaultMessage()
+      });
       this.notificationSteps.set(newMap);
       
+      const controlName = `${key}-channel`;
+      if (!notifData.get(controlName)) {
+        notifData.addControl(controlName, this.fb.control(stepData.channel || ''));
+      }
+      const credControlName = `${key}-credentialId`;
+      if (!notifData.get(credControlName)) {
+        notifData.addControl(credControlName, this.fb.control(stepData.credentialId || ''));
+      }
+      const msgControlName = `${key}-message`;
+      if (!notifData.get(msgControlName)) {
+        notifData.addControl(msgControlName, this.fb.control(stepData.message || this.getDefaultMessage()));
+      }
+      
       steps.push(this.fb.control(`notification-${stepData.provider}`, Validators.required));
-      this.ensureControlExists(stageIndex!, 'ch-' + key, stepData.channel || '');
-      this.ensureControlExists(stageIndex!, 'cred-' + key, stepData.credentialId || '');
-      this.ensureControlExists(stageIndex!, 'msg-' + key, stepData.message || this.getDefaultMessage());
     } else {
       steps.push(this.fb.control(stepData?.command || '', Validators.required));
     }
@@ -617,15 +638,9 @@ export class PipelineFormComponent implements OnInit {
     const key = this.getStepKey(stageIndex, stepIndex);
     const steps = this.getSteps(stageIndex);
     
-    if (this.notificationSteps().has(key)) {
-      const controlsToRemove = ['ch-' + key, 'cred-' + key, 'msg-' + key];
-      controlsToRemove.reverse().forEach(name => {
-        const idx = steps.controls.findIndex((c: any) => c instanceof this.fb.group ? false : (steps.get(name) === c));
-        if (idx > stepIndex) {
-          steps.removeAt(idx);
-        }
-      });
-    }
+    this.removeNotificationControl(stageIndex, key, 'channel');
+    this.removeNotificationControl(stageIndex, key, 'credentialId');
+    this.removeNotificationControl(stageIndex, key, 'message');
     
     steps.removeAt(stepIndex);
     
@@ -677,12 +692,12 @@ export class PipelineFormComponent implements OnInit {
   getWebhookUrl(): string {
     const pipelineId = this.pipeline()?.id;
     if (!pipelineId) return '';
-    return `${this.api.baseUrl}/webhooks/${pipelineId}`;
+    return `${this.api.baseUrl}/webhooks/webhook/${pipelineId}`;
   }
 
   copyWebhookUrl(input: HTMLInputElement): void {
     navigator.clipboard.writeText(input.value).then(() => {
-      alert('URL copied to clipboard!');
+      this.toastService.success('URL copied to clipboard!');
     });
   }
 
@@ -691,6 +706,7 @@ export class PipelineFormComponent implements OnInit {
     
     if (this.form.invalid) {
       console.log('Form invalid:', this.form.errors);
+      console.log('Form value:', JSON.stringify(this.form.value, null, 2));
       Object.keys(this.form.controls).forEach(key => {
         const control = this.form.get(key);
         if (control?.invalid) {
@@ -699,11 +715,13 @@ export class PipelineFormComponent implements OnInit {
       });
       return;
     }
-
+    
     this.submitting.set(true);
     const rawValue = this.form.getRawValue();
+    console.log('Submitting form:', JSON.stringify(rawValue, null, 2));
     const stagesData = (rawValue.stages || []).map((stage: any, sIdx: number) => {
       const steps: any[] = [];
+      const notificationData = stage.notificationData || {};
       let i = 0;
       while (i < (stage.steps || []).length) {
         const cmd = stage.steps[i];
@@ -711,9 +729,9 @@ export class PipelineFormComponent implements OnInit {
         
         if (typeof cmd === 'string' && cmd.startsWith('notification-')) {
           const provider = cmd.replace('notification-', '');
-          const channel = stage.steps[i + 1] || '';
-          const credentialId = stage.steps[i + 2] || '';
-          const message = stage.steps[i + 3] || '';
+          const channel = notificationData[`${key}-channel`] || '';
+          const credentialId = notificationData[`${key}-credentialId`] || '';
+          const message = notificationData[`${key}-message`] || '';
           
           steps.push({
             type: 'notification',
@@ -723,7 +741,7 @@ export class PipelineFormComponent implements OnInit {
             channel: channel,
             message: message || this.getDefaultMessage()
           });
-          i += 4;
+          i++;
         } else {
           steps.push({ command: cmd });
           i++;
@@ -760,11 +778,13 @@ export class PipelineFormComponent implements OnInit {
       next: (res) => {
         this.submitting.set(false);
         if (res.success) {
+          this.toastService.success(id ? 'Pipeline updated!' : 'Pipeline created!');
           this.router.navigate(['/pipelines']);
         }
       },
       error: (err) => {
         console.error('Error creating pipeline:', err);
+        this.toastService.error('Failed to save pipeline');
         this.submitting.set(false);
       }
     });

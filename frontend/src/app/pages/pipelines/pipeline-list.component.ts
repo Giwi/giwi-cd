@@ -53,11 +53,6 @@ import { Pipeline, ApiResponse } from '../../models/types';
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <a class="dropdown-item" [routerLink]="['/pipelines', pipeline.id]">
-                        <i class="bi bi-eye me-2"></i>View
-                      </a>
-                    </li>
-                    <li>
                       <a class="dropdown-item" [routerLink]="['/pipelines', pipeline.id, 'edit']">
                         <i class="bi bi-pencil me-2"></i>Edit
                       </a>

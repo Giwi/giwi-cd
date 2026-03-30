@@ -12,11 +12,11 @@ FROM node:20-alpine AS backend
 
 WORKDIR /app
 
-COPY backend/package*.json ./
+COPY package*.json ./
 RUN npm ci --only=production
 
-COPY backend/src ./src
-COPY backend/.env.example ./.env
+COPY src ./src
+COPY .env.example ./.env
 
 EXPOSE 3000
 
