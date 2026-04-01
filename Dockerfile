@@ -1,9 +1,15 @@
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1.4
+
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
+ARG TARGETARCH
+RUN apk add --no-cache python3 make g++
+
 # Build frontend
-COPY frontend/package*.json frontend/
+COPY frontend/ ./frontend/
 WORKDIR /app/frontend
 RUN npm ci && npm run build
 
