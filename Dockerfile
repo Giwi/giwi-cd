@@ -5,9 +5,6 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-ARG TARGETARCH
-RUN apk add --no-cache python3 make g++
-
 # Build frontend
 COPY frontend/ ./frontend/
 WORKDIR /app/frontend

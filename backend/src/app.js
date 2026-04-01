@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -30,6 +31,10 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static frontend files
+const frontendPath = path.resolve(process.cwd(), 'frontend/dist');
+app.use(express.static(frontendPath));
+
 // Build executor (singleton)
 const buildExecutor = new BuildExecutor(wsManager);
 app.set('buildExecutor', buildExecutor);
@@ -43,6 +48,11 @@ app.use('/api/builds', buildRoutes);
 app.use('/api/credentials', credentialRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/polling', pollingRoutes);
+
+// Catch-all for Angular routes - serve index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // Root route
 app.get('/', (req, res) => {
