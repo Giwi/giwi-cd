@@ -218,7 +218,7 @@ export class RegisterComponent {
       username: this.username || undefined
     }).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/']);
       },
       error: (err) => {
         this.error.set(err.error?.error || 'Registration failed. Please try again.');

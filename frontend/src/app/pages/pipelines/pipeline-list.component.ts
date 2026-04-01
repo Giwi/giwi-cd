@@ -1,8 +1,9 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { ConfirmService } from '../../services/confirm.service';
+import { ToastService } from '../../services/toast.service';
 import { Pipeline, ApiResponse } from '../../models/types';
 
 @Component({
@@ -15,9 +16,15 @@ import { Pipeline, ApiResponse } from '../../models/types';
         <h1 class="page-title">Pipelines</h1>
         <p class="page-subtitle">Manage your CI/CD pipelines</p>
       </div>
-      <a routerLink="/pipelines/new" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i> New Pipeline
-      </a>
+      <div class="d-flex gap-2">
+        <label class="btn btn-outline-secondary mb-0">
+          <i class="bi bi-upload me-1"></i> Import
+          <input type="file" accept=".json" (change)="importPipeline($event)" class="d-none">
+        </label>
+        <a routerLink="/pipelines/new" class="btn btn-primary">
+          <i class="bi bi-plus-lg me-1"></i> New Pipeline
+        </a>
+      </div>
     </div>
 
     @if (loading()) {
@@ -57,6 +64,11 @@ import { Pipeline, ApiResponse } from '../../models/types';
                         <i class="bi bi-pencil me-2"></i>Edit
                       </a>
                     </li>
+                    <li>
+                      <button class="dropdown-item" (click)="exportPipeline(pipeline)">
+                        <i class="bi bi-download me-2"></i>Export
+                      </button>
+                    </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <button class="dropdown-item text-danger" (click)="togglePipeline(pipeline)">
@@ -82,7 +94,7 @@ import { Pipeline, ApiResponse } from '../../models/types';
                   {{ pipeline.enabled ? 'Active' : 'Inactive' }}
                 </span>
                 <span class="badge bg-muted text-secondary">
-                  <i class="bi bi-list-check me-1"></i>{{ pipeline.stages?.length || 0 }} stages
+                  <i class="bi bi-list-check me-1"></i>{{ pipeline.stages.length || 0 }} stages
                 </span>
                 @if (pipeline.credentialName) {
                   <span class="badge bg-info">
@@ -118,9 +130,12 @@ import { Pipeline, ApiResponse } from '../../models/types';
 export class PipelineListComponent implements OnInit {
   pipelines = signal<Pipeline[]>([]);
   loading = signal(true);
-  private confirmService = inject(ConfirmService);
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private confirmService: ConfirmService,
+    private toast: ToastService
+  ) {}
 
   ngOnInit(): void {
     this.loadPipelines();
@@ -139,6 +154,49 @@ export class PipelineListComponent implements OnInit {
 
   triggerBuild(pipeline: Pipeline): void {
     this.api.post<ApiResponse<unknown>>(`/pipelines/${pipeline.id}/trigger`).subscribe();
+  }
+
+  exportPipeline(pipeline: Pipeline): void {
+    const data = {
+      name: pipeline.name,
+      description: pipeline.description,
+      branch: pipeline.branch,
+      repositoryUrl: pipeline.repositoryUrl,
+      stages: pipeline.stages,
+      environment: pipeline.environment
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${pipeline.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  importPipeline(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string);
+        this.api.post<ApiResponse<Pipeline>>('/pipelines/import', data).subscribe({
+          next: (res) => {
+            if (res.success) {
+              this.toast.success('Pipeline imported successfully');
+              this.loadPipelines();
+            }
+          }
+        });
+      } catch {
+        this.toast.error('Invalid JSON file');
+      }
+    };
+    reader.readAsText(file);
+    input.value = '';
   }
 
   togglePipeline(pipeline: Pipeline): void {

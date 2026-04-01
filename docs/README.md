@@ -13,6 +13,7 @@
 - **Push Polling** - Automatically detect new commits and trigger builds
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
+- **Import/Export** - Share pipelines as JSON files
 
 ## Prerequisites
 

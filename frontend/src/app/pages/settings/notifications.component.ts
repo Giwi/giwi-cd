@@ -17,7 +17,7 @@ import { Credential, ApiResponse } from '../../models/types';
         <h1 class="page-title">Notifications</h1>
         <p class="page-subtitle">Configure notifications via Telegram, Slack, Teams or Email</p>
       </div>
-      <a routerLink="/settings/credentials/new?type=notification" class="btn btn-primary">
+      <a routerLink="/settings/notifications/new" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i> Add Notification
       </a>
     </div>
@@ -32,7 +32,7 @@ import { Credential, ApiResponse } from '../../models/types';
           <i class="bi bi-bell fs-1 text-muted mb-3 d-block"></i>
           <h5>No notifications configured</h5>
           <p class="text-muted mb-3">Configure Telegram, Slack, Teams or Email to receive notifications</p>
-          <a routerLink="/settings/credentials/new?type=notification" class="btn btn-primary">
+          <a routerLink="/settings/notifications/new" class="btn btn-primary">
             <i class="bi bi-plus-lg me-1"></i> Add Notification
           </a>
         </div>

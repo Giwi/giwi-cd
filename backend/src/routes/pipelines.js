@@ -38,6 +38,24 @@ router.post('/', (req, res) => {
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline created successfully' });
 });
 
+// POST /api/pipelines/import - Import pipeline
+router.post('/import', (req, res) => {
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment } = req.body;
+  if (!name) return res.status(400).json({ success: false, error: 'Pipeline name is required' });
+
+  const pipeline = Pipeline.create({ 
+    name, 
+    description: description || '', 
+    repositoryUrl: repositoryUrl || '', 
+    credentialId: credentialId || null, 
+    branch: branch || 'main', 
+    stages: stages || [], 
+    triggers: triggers || [], 
+    environment: environment || [] 
+  });
+  res.status(201).json({ success: true, data: pipeline, message: 'Pipeline imported successfully' });
+});
+
 // PUT /api/pipelines/:id - Update pipeline
 router.put('/:id', (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);

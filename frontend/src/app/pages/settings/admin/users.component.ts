@@ -28,62 +28,60 @@ import { ConfirmService } from '../../../services/confirm.service';
       </div>
     }
 
-    <div class="card">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Created</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
             <tr>
-              <th>User</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Created</th>
-              <th class="text-end">Actions</th>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  @if (getGravatar(user.email); as gravatar) {
+                    <img [src]="gravatar" class="user-avatar-img" alt="Avatar">
+                  } @else {
+                    <div class="user-avatar-sm">{{ getInitials(user.username) }}</div>
+                  }
+                  <strong>{{ user.username }}</strong>
+                </div>
+              </td>
+              <td>{{ user.email }}</td>
+              <td>
+                <span class="badge" [class]="user.role === 'admin' ? 'bg-primary' : 'bg-secondary'">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>{{ user.createdAt | date:'short' }}</td>
+              <td class="text-end">
+                <div class="btn-group">
+                  <button class="btn btn-sm btn-ghost" (click)="editUser(user)" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-ghost text-danger" 
+                    (click)="deleteUser(user)"
+                    [disabled]="user.id === currentUserId"
+                    title="Delete"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            @for (user of users(); track user.id) {
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    @if (getGravatar(user.email); as gravatar) {
-                      <img [src]="gravatar" class="user-avatar-img" alt="Avatar">
-                    } @else {
-                      <div class="user-avatar-sm">{{ getInitials(user.username) }}</div>
-                    }
-                    <strong>{{ user.username }}</strong>
-                  </div>
-                </td>
-                <td>{{ user.email }}</td>
-                <td>
-                  <span class="badge" [class]="user.role === 'admin' ? 'bg-primary' : 'bg-secondary'">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td>{{ user.createdAt | date:'short' }}</td>
-                <td class="text-end">
-                  <div class="btn-group">
-                    <button class="btn btn-sm btn-ghost" (click)="editUser(user)" title="Edit">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button 
-                      class="btn btn-sm btn-ghost text-danger" 
-                      (click)="deleteUser(user)"
-                      [disabled]="user.id === currentUserId"
-                      title="Delete"
-                    >
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="5" class="text-center py-4 text-muted">No users found</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+          } @empty {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">No users found</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
 
     @if (showCreateModal) {

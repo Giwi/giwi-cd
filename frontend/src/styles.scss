@@ -759,7 +759,7 @@ body {
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .stat-card {
@@ -1380,6 +1380,7 @@ body {
   padding: 0.5rem;
   box-shadow: var(--shadow-lg);
   background: var(--bg-surface);
+  z-index: 1050;
 }
 
 .dropdown-item {

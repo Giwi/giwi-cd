@@ -63,6 +63,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'settings/notifications/new',
+    loadComponent: () => import('./pages/settings/notification-add.component').then(m => m.NotificationAddComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'settings/notifications',
     loadComponent: () => import('./pages/settings/notifications.component').then(m => m.NotificationsComponent),
     canActivate: [authGuard]
@@ -82,6 +87,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/settings/admin/users.component').then(m => m.UsersComponent),
     canActivate: [adminGuard]
   },
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: 'dashboard' }
+  {
+    path: '',
+    loadComponent: () => import('./pages/landing.component').then(m => m.LandingComponent)
+  },
+  { path: 'dashboard', redirectTo: '', pathMatch: 'full' },
+  { path: '**', redirectTo: '' }
 ];

@@ -11,8 +11,6 @@ interface NotificationStep {
   name: string;
   provider: 'telegram' | 'slack' | 'teams' | 'mail';
   credentialId?: string;
-  channel?: string;
-  webhookUrl?: string;
   message?: string;
   continueOnError?: boolean;
 }
@@ -164,10 +162,12 @@ interface NotificationStep {
                                       }
                                     </select>
                                   </div>
-                                  <div class="col-md-4">
-                                    <input type="text" class="form-control form-control-sm" [placeholder]="getChannelPlaceholder(i, j)"
-                                           [formControl]="getNotificationFormControl(i, j, 'channel')">
-                                  </div>
+                                  @if (isSlackOrTeams(i, j)) {
+                                    <div class="col-md-4">
+                                      <input type="text" class="form-control form-control-sm" placeholder="Channel (e.g. #builds)"
+                                             [formControl]="getNotificationFormControl(i, j, 'channel')">
+                                    </div>
+                                  }
                                 </div>
                                 <div class="row g-2 mt-2">
                                   <div class="col-12">
@@ -296,7 +296,7 @@ export class PipelineFormComponent implements OnInit {
   credentials = signal<Credential[]>([]);
   submitting = signal(false);
   formSubmitted = signal(false);
-  notificationSteps = signal<Map<string, { provider: string; channel: string; credentialId?: string; message?: string }>>(new Map());
+  notificationSteps = signal<Map<string, { provider: string; channel?: string; credentialId?: string; message?: string }>>(new Map());
   private toastService = inject(ToastService);
 
   constructor(
@@ -474,10 +474,12 @@ export class PipelineFormComponent implements OnInit {
   }
 
   getChannelPlaceholder(stageIndex: number, stepIndex: number): string {
+    return '';
+  }
+
+  isSlackOrTeams(stageIndex: number, stepIndex: number): boolean {
     const provider = this.getStepProvider(stageIndex, stepIndex);
-    if (provider === 'telegram') return 'Chat ID (e.g. -1001234567890)';
-    if (provider === 'mail') return 'Recipient email (e.g. user@example.com)';
-    return 'Webhook URL or channel name';
+    return provider === 'slack' || provider === 'teams';
   }
 
   getMessagePlaceholder(): string {
@@ -576,7 +578,6 @@ export class PipelineFormComponent implements OnInit {
       newMap.set(key, { ...existing, provider });
       this.notificationSteps.set(newMap);
     } else {
-      this.removeNotificationControl(stageIndex, key, 'channel');
       this.removeNotificationControl(stageIndex, key, 'credentialId');
       this.removeNotificationControl(stageIndex, key, 'message');
       
@@ -610,9 +611,9 @@ export class PipelineFormComponent implements OnInit {
       });
       this.notificationSteps.set(newMap);
       
-      const controlName = `${key}-channel`;
-      if (!notifData.get(controlName)) {
-        notifData.addControl(controlName, this.fb.control(stepData.channel || ''));
+      const chanControlName = `${key}-channel`;
+      if (!notifData.get(chanControlName)) {
+        notifData.addControl(chanControlName, this.fb.control(stepData.channel || ''));
       }
       const credControlName = `${key}-credentialId`;
       if (!notifData.get(credControlName)) {
@@ -723,8 +724,8 @@ export class PipelineFormComponent implements OnInit {
             type: 'notification',
             name: `${provider} notification`,
             provider: provider,
+            channel: channel || undefined,
             credentialId: credentialId || undefined,
-            channel: channel,
             message: message || this.getDefaultMessage()
           });
           i++;
