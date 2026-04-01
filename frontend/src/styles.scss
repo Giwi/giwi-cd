@@ -5,6 +5,7 @@
 :root {
   // Primary Colors
   --primary: #6366f1;
+  --primary-rgb: 99, 102, 241;
   --primary-dark: #4f46e5;
   --primary-light: #818cf8;
   --primary-ghost: rgba(99, 102, 241, 0.1);
@@ -57,6 +58,7 @@
 // Dark Theme
 [data-theme="dark"] {
   --primary: #818cf8;
+  --primary-rgb: 129, 140, 248;
   --primary-dark: #6366f1;
   --primary-light: #a5b4fc;
   --primary-ghost: rgba(129, 140, 248, 0.15);

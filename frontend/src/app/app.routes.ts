@@ -91,6 +91,5 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./pages/landing.component').then(m => m.LandingComponent)
   },
-  { path: 'dashboard', redirectTo: '', pathMatch: 'full' },
   { path: '**', redirectTo: '' }
 ];
