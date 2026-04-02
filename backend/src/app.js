@@ -33,7 +33,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static frontend files
-const frontendPath = path.resolve(__dirname, 'frontend/dist');
+const appRoot = process.cwd();
+const frontendPath = path.resolve(appRoot, 'frontend/dist');
 app.use(express.static(frontendPath));
 
 // Build executor (singleton)
@@ -57,7 +58,12 @@ app.use('/api/polling', authenticate, pollingRoutes);
 // Catch-all for SPA - serve index.html for any non-API routes
 app.get('*', (req, res, next) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    const indexPath = path.join(frontendPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        res.status(404).send('index.html not found');
+      }
+    });
   } else {
     next();
   }

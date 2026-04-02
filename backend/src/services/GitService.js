@@ -30,10 +30,8 @@ class GitService {
 
     if (credentialId && !isSSH) {
       const cred = Credential.getRaw(credentialId);
-      console.log(`[GitService] credentialId=${credentialId}, cred found:`, cred ? 'yes' : 'no', 'type:', cred?.type);
       if (cred) {
         authUrl = this._buildAuthUrl(repoUrl, cred);
-        console.log(`[GitService] authUrl:`, this._maskUrl(authUrl));
       }
     }
 

@@ -10,7 +10,6 @@ class NotificationService {
   }
 
   async send(buildId, notification, build, pipeline) {
-    console.log('[NotificationService.send] Called with build:', build?.number, 'startedAt:', build?.startedAt, 'finishedAt:', build?.finishedAt);
     const { provider, credentialId, channel, message, webhookUrl } = notification;
 
     if (!provider) {
@@ -72,16 +71,13 @@ class NotificationService {
       }
 
       if (result.success) {
-        console.log('[NotificationService] Telegram notification SUCCESS');
         emit('success', `✅ Notification sent via ${provider}`);
       } else {
-        console.log('[NotificationService] Telegram notification FAILED:', result.error);
         emit('error', `❌ ${provider} notification failed: ${result.error}`);
       }
 
       return result;
     } catch (err) {
-      console.log('[NotificationService] Exception caught:', err.message);
       emit('error', `❌ Notification error: ${err.message}`);
       return { success: false, error: err.message };
     }
@@ -120,7 +116,6 @@ class NotificationService {
     if (build?.startedAt) {
       const endTime = build.finishedAt ? new Date(build.finishedAt) : new Date();
       const seconds = Math.floor((endTime - new Date(build.startedAt)) / 1000);
-      console.log('[NotificationService] Duration calc - startedAt:', build.startedAt, 'finishedAt:', build.finishedAt, 'seconds:', seconds);
       if (seconds < 60) return `${seconds}s`;
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = seconds % 60;
@@ -137,9 +132,7 @@ class NotificationService {
 
   _sendTelegram(buildId, botToken, chatId, message, emit) {
     return new Promise((resolve) => {
-      console.log(`[Telegram] Sending message: "${message.substring(0, 80)}..."`);
       if (!botToken || !chatId) {
-        console.log(`[NotificationService] Missing botToken or chatId`);
         resolve({ success: false, error: 'Telegram bot token and chat ID are required' });
         return;
       }

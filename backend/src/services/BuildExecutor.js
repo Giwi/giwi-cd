@@ -25,7 +25,6 @@ class BuildExecutor extends EventEmitter {
     this.runningBuilds.set(build.id, { build, pipeline, process: null });
     Pipeline.updateStatus(pipeline.id, 'running');
     Build.updateStatus(build.id, 'running');
-    console.log('[BuildExecutor] Broadcasting build:start for', build.id);
     this.wsManager.broadcast({ type: 'build:start', buildId: build.id, pipelineId: pipeline.id });
     this._emit(build.id, 'info', `🚀 Starting build #${build.number} for pipeline: ${pipeline.name}`);
     this._emit(build.id, 'info', `📌 Branch: ${build.branch}`);
@@ -117,7 +116,6 @@ class BuildExecutor extends EventEmitter {
       const keepBuilds = pipeline.keepBuilds || 10;
       Build.cleanOldBuilds(pipeline.id, keepBuilds);
 
-      console.log('[BuildExecutor] Broadcasting build:complete for', build.id);
       this.wsManager.broadcast({ type: 'build:complete', buildId: build.id, status: finalStatus });
 
     } catch (err) {
@@ -134,12 +132,9 @@ class BuildExecutor extends EventEmitter {
     for (let sIdx = 0; sIdx < steps.length; sIdx++) {
       const step = steps[sIdx];
       if (step.type === 'notification') {
-        console.log(`[DEBUG] NOTIFICATION STEP DETECTED in stage ${stage.name}, sending...`);
         const currentBuild = Build.findById(buildId);
-        this._emit(buildId, 'info', `*** NOTIFICATION EXEC DURING STAGE "${stage.name}" (step ${sIdx}) - sending... ***`);
         try {
           await this.notificationService.send(buildId, step, currentBuild, pipeline);
-          this._emit(buildId, 'info', `*** NOTIFICATION SENT for ${step.provider} ***`);
         } catch (err) {
           this._emit(buildId, 'error', `  ❌ Notification error: ${err.message}`);
         }
@@ -248,44 +243,6 @@ class BuildExecutor extends EventEmitter {
     return command.replace(/\$\{CRED:([^}]+)\}/g, '${CRED:$1}');
   }
 
-  _simulateCommand(command) {
-    const cmd = command.toLowerCase();
-    if (cmd.includes('npm install') || cmd.includes('yarn install')) {
-      return { success: true, delay: 1500, lines: ['📦 Installing packages...', '✔ Packages installed'] };
-    }
-    if (cmd.includes('npm run build') || cmd.includes('ng build')) {
-      return { success: true, delay: 2000, lines: ['🔨 Building...', '✔ Build successful', '📁 Output: dist/'] };
-    }
-    if (cmd.includes('npm test') || cmd.includes('ng test')) {
-      return { success: true, delay: 1200, lines: ['🧪 Running tests...', 'PASS: 12 tests', '✔ All tests passed'] };
-    }
-    if (cmd.includes('docker build')) {
-      return { success: true, delay: 2500, lines: ['🐳 Building Docker image...', 'Step 1/8: FROM node:18', '✔ Image built successfully'] };
-    }
-    if (cmd.includes('docker push')) {
-      return { success: true, delay: 1800, lines: ['📤 Pushing image...', '✔ Image pushed to registry'] };
-    }
-    if (cmd.includes('fail') || cmd.includes('exit 1')) {
-      return { success: false, delay: 500, lines: ['❌ Command failed with exit code 1'] };
-    }
-    return { success: true, delay: 800, lines: [`✔ Command completed: ${command}`] };
-  }
-
-  _emit(buildId, level, message) {
-    const log = Build.addLog(buildId, { level, message });
-    if (log) {
-      this.wsManager.broadcast({ type: 'build:log', buildId, log });
-    }
-  }
-
-  _getDuration(buildId) {
-    const build = Build.findById(buildId);
-    if (build && build.startedAt) {
-      return Math.floor((new Date() - new Date(build.startedAt)) / 1000);
-    }
-    return 0;
-  }
-
   cancel(buildId) {
     const running = this.runningBuilds.get(buildId);
     if (running) {
@@ -303,27 +260,6 @@ class BuildExecutor extends EventEmitter {
 
   getRunningBuilds() {
     return Array.from(this.runningBuilds.keys());
-  }
-
-  async _sendBuildNotifications(build, pipeline, status) {
-    const notificationSteps = (pipeline.stages || [])
-      .flatMap(stage => stage.steps || [])
-      .filter(step => step.type === 'notification');
-
-    if (notificationSteps.length === 0) return;
-
-    console.log(`[_sendBuildNotifications] Found ${notificationSteps.length} notification steps`);
-    
-    for (const step of notificationSteps) {
-      console.log(`[_sendBuildNotifications] Processing step:`, step);
-      this._emit(build.id, 'info', `  🔔 Sending completion notification: ${step.name || step.provider}`);
-      try {
-        await this.notificationService.send(build.id, step, build, pipeline);
-      } catch (err) {
-        console.log(`[_sendBuildNotifications] Error:`, err.message);
-        this._emit(build.id, 'error', `  ❌ Notification error: ${err.message}`);
-      }
-    }
   }
 
   _getDuration(buildId) {
