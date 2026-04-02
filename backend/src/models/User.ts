@@ -1,9 +1,23 @@
-const { v4: uuidv4 } = require('uuid');
-const bcrypt = require('bcryptjs');
-const db = require('../config/database');
+import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcryptjs';
+import db from '../config/database';
+import type { User as IUser } from '../types';
 
-class User {
-  static async create(data) {
+interface UserData {
+  email: string;
+  password: string;
+  username?: string;
+  role?: string;
+}
+
+interface UserUpdateData {
+  username?: string;
+  role?: string;
+  password?: string;
+}
+
+export class User {
+  static async create(data: UserData): Promise<Omit<IUser, 'password'>> {
     const existingUser = db.get('users').find({ email: data.email }).value();
     if (existingUser) {
       throw new Error('Email already registered');
@@ -11,12 +25,11 @@ class User {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
-    const user = {
+    const user: IUser = {
       id: uuidv4(),
       email: data.email,
-      username: data.username || data.email.split('@')[0],
       password: hashedPassword,
-      role: data.role || 'user',
+      role: (data.role as IUser['role']) || 'user',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -27,33 +40,36 @@ class User {
     return userWithoutPassword;
   }
 
-  static findAll() {
-    return db.get('users').map(user => {
+  static findAll(): Omit<IUser, 'password'>[] {
+    return db.get('users').map((user: IUser) => {
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
     }).value();
   }
 
-  static findById(id) {
+  static findById(id: string): Omit<IUser, 'password'> | null {
     const user = db.get('users').find({ id }).value();
     if (!user) return null;
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
-  static findByEmail(email) {
+  static findByEmail(email: string): IUser | undefined {
     return db.get('users').find({ email }).value();
   }
 
-  static async update(id, data) {
+  static async update(id: string, data: UserUpdateData): Promise<Omit<IUser, 'password'> | null> {
     const user = db.get('users').find({ id }).value();
     if (!user) return null;
 
-    const updates = {
-      username: data.username !== undefined ? data.username : user.username,
-      role: data.role !== undefined ? data.role : user.role,
+    const updates: Partial<IUser> = {
+      role: (data.role as IUser['role']) || user.role,
       updatedAt: new Date().toISOString()
     };
+
+    if (data.username !== undefined) {
+      updates.username = data.username;
+    }
 
     if (data.password) {
       updates.password = await bcrypt.hash(data.password, 10);
@@ -63,14 +79,12 @@ class User {
     return this.findById(id);
   }
 
-  static async verifyPassword(plainPassword, hashedPassword) {
+  static async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  static delete(id) {
+  static delete(id: string): boolean {
     db.get('users').remove({ id }).write();
     return true;
   }
 }
-
-module.exports = User;
