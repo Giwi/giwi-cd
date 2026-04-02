@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ git
 
 WORKDIR /app
 
