@@ -52,12 +52,20 @@ class WebSocketManager {
   }
 
   broadcast(data) {
+    console.log('[WS] Broadcasting:', data.type, 'to', this.clients.size, 'clients');
     const message = JSON.stringify(data);
     this.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        if (!data.buildId || !client.buildId || client.buildId === data.buildId) {
-          client.send(message);
+        try {
+          if (!data.buildId || !client.buildId || client.buildId === data.buildId) {
+            client.send(message);
+          }
+        } catch (err) {
+          // Client disconnected, remove from list
+          this.clients.delete(client);
         }
+      } else if (client.readyState !== WebSocket.CONNECTING) {
+        this.clients.delete(client);
       }
     });
   }
@@ -66,7 +74,13 @@ class WebSocketManager {
     const message = JSON.stringify(data);
     this.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN && client.buildId === buildId) {
-        client.send(message);
+        try {
+          client.send(message);
+        } catch (err) {
+          this.clients.delete(client);
+        }
+      } else if (client.readyState !== WebSocket.CONNECTING && client.buildId === buildId) {
+        this.clients.delete(client);
       }
     });
   }

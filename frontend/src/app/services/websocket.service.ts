@@ -20,7 +20,7 @@ export class WebSocketService implements OnDestroy {
   connect(buildId?: string): void {
     if (this.ws?.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = `ws://localhost:3000/ws`;
+    const wsUrl = `ws://${window.location.host}/ws`;
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {

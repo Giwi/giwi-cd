@@ -44,6 +44,26 @@ import { Subscription } from 'rxjs';
         <div class="spinner-border text-primary" role="status"></div>
       </div>
     } @else if (build()) {
+      @if (build()?.stages?.length) {
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-start flex-nowrap overflow-auto">
+              @for (stage of build()?.stages || []; track $index; let i = $index) {
+                <div class="d-flex align-items-center flex-nowrap">
+                  <div class="stage-pill stage-{{ stage.status || 'pending' }}">
+                    <span class="stage-dot"></span>
+                    <span class="stage-name">{{ stage.name }}</span>
+                  </div>
+                  @if (i < (build()?.stages?.length || 0) - 1) {
+                    <div class="stage-connector-line" [class.completed]="isStageCompleted(stage.status)"></div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="row g-4">
         <div class="col-lg-4">
           <div class="card border-0 shadow-sm mb-4">
@@ -85,27 +105,6 @@ import { Subscription } from 'rxjs';
                   <label class="text-muted small">Duration</label>
                   <div class="small fw-semibold">{{ formatDuration(build()?.duration) }}</div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card border-0 shadow-sm">
-            <div class="card-header card-header-theme py-3">
-              <h5 class="mb-0">Stages</h5>
-            </div>
-            <div class="card-body p-0">
-              <div class="stage-pipeline flex-column px-3 py-2">
-                @for (stage of build()?.stages || []; track $index; let i = $index) {
-                  <div class="d-flex align-items-center w-100 mb-2">
-                    @if (i > 0) {
-                      <div class="stage-connector me-2"></div>
-                    }
-                    <div class="stage-box stage-{{ stage.status || 'pending' }} w-100">
-                      <i class="bi bi-{{ getStageIcon(stage.status) }} me-1"></i>
-                      {{ stage.name }}
-                    </div>
-                  </div>
-                }
               </div>
             </div>
           </div>
@@ -268,6 +267,10 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
       cancelled: 'dash-circle'
     };
     return icons[status || 'pending'] || 'circle';
+  }
+
+  isStageCompleted(status?: string): boolean {
+    return status === 'success';
   }
 
   formatDate(dateStr: string | null | undefined): string {

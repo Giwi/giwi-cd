@@ -25,6 +25,8 @@ class BuildExecutor extends EventEmitter {
     this.runningBuilds.set(build.id, { build, pipeline, process: null });
     Pipeline.updateStatus(pipeline.id, 'running');
     Build.updateStatus(build.id, 'running');
+    console.log('[BuildExecutor] Broadcasting build:start for', build.id);
+    this.wsManager.broadcast({ type: 'build:start', buildId: build.id, pipelineId: pipeline.id });
     this._emit(build.id, 'info', `🚀 Starting build #${build.number} for pipeline: ${pipeline.name}`);
     this._emit(build.id, 'info', `📌 Branch: ${build.branch}`);
     this._emit(build.id, 'info', `⏱️ Started at: ${new Date().toLocaleString()}`);
@@ -112,7 +114,10 @@ class BuildExecutor extends EventEmitter {
       Build.updateStatus(build.id, finalStatus);
       Pipeline.updateStatus(pipeline.id, 'inactive', finalStatus);
 
-      await this._sendBuildNotifications(build, pipeline, finalStatus);
+      const keepBuilds = pipeline.keepBuilds || 10;
+      Build.cleanOldBuilds(pipeline.id, keepBuilds);
+
+      console.log('[BuildExecutor] Broadcasting build:complete for', build.id);
       this.wsManager.broadcast({ type: 'build:complete', buildId: build.id, status: finalStatus });
 
     } catch (err) {
@@ -126,9 +131,18 @@ class BuildExecutor extends EventEmitter {
 
   async _executeStage(buildId, stage, pipeline, workDir) {
     const steps = stage.steps || [];
-    for (const step of steps) {
+    for (let sIdx = 0; sIdx < steps.length; sIdx++) {
+      const step = steps[sIdx];
       if (step.type === 'notification') {
-        continue;
+        console.log(`[DEBUG] NOTIFICATION STEP DETECTED in stage ${stage.name}, sending...`);
+        const currentBuild = Build.findById(buildId);
+        this._emit(buildId, 'info', `*** NOTIFICATION EXEC DURING STAGE "${stage.name}" (step ${sIdx}) - sending... ***`);
+        try {
+          await this.notificationService.send(buildId, step, currentBuild, pipeline);
+          this._emit(buildId, 'info', `*** NOTIFICATION SENT for ${step.provider} ***`);
+        } catch (err) {
+          this._emit(buildId, 'error', `  ❌ Notification error: ${err.message}`);
+        }
       } else {
         const interpolatedCommand = this._interpolateCredentials(step.command, pipeline);
         this._emit(buildId, 'info', `  ▶ Step: ${step.name || interpolatedCommand}`);
@@ -298,10 +312,17 @@ class BuildExecutor extends EventEmitter {
 
     if (notificationSteps.length === 0) return;
 
-    const finalBuild = Build.findById(build.id);
+    console.log(`[_sendBuildNotifications] Found ${notificationSteps.length} notification steps`);
+    
     for (const step of notificationSteps) {
+      console.log(`[_sendBuildNotifications] Processing step:`, step);
       this._emit(build.id, 'info', `  🔔 Sending completion notification: ${step.name || step.provider}`);
-      await this.notificationService.send(build.id, step, finalBuild, pipeline);
+      try {
+        await this.notificationService.send(build.id, step, build, pipeline);
+      } catch (err) {
+        console.log(`[_sendBuildNotifications] Error:`, err.message);
+        this._emit(build.id, 'error', `  ❌ Notification error: ${err.message}`);
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-landing',
@@ -169,6 +170,7 @@ import { RouterLink } from '@angular/router';
       <footer class="landing-footer">
         <span>&copy; 2026 <a href="https://giwi.fr" target="_blank" rel="noopener">GiwiSoft</a>. Built with passion for developers.</span>
       </footer>
+      <script defer src="https://analytics.giwi.fr/script.js" data-website-id="61d8fe09-bf30-4ccc-b967-98e46099eba2"></script>
     </div>
   `,
   styles: [`

@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { ToastService } from '../../services/toast.service';
@@ -134,7 +134,8 @@ export class PipelineListComponent implements OnInit {
   constructor(
     private api: ApiService,
     private confirmService: ConfirmService,
-    private toast: ToastService
+    private toast: ToastService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -153,7 +154,14 @@ export class PipelineListComponent implements OnInit {
   }
 
   triggerBuild(pipeline: Pipeline): void {
-    this.api.post<ApiResponse<unknown>>(`/pipelines/${pipeline.id}/trigger`).subscribe();
+    this.api.post<ApiResponse<{ id: string }>>(`/pipelines/${pipeline.id}/trigger`).subscribe({
+      next: (res) => {
+        if (res.success && res.data?.id) {
+          this.toast.info(`Build started for ${pipeline.name}`);
+          this.router.navigate(['/builds', res.data.id]);
+        }
+      }
+    });
   }
 
   exportPipeline(pipeline: Pipeline): void {

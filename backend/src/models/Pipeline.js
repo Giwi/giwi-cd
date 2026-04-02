@@ -20,7 +20,8 @@ class Pipeline {
       lastBuildAt: null,
       lastBuildStatus: null,
       lastCommit: null,
-      pollingInterval: 60
+      pollingInterval: 60,
+      keepBuilds: data.keepBuilds || 10
     };
     db.get('pipelines').push(pipeline).write();
     return pipeline;

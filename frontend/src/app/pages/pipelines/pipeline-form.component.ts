@@ -140,9 +140,17 @@ interface NotificationStep {
                                   <span class="badge" [class]="getProviderBadgeClass(i, j)">
                                     <i class="bi {{ getProviderIcon(i, j) }} me-1"></i> {{ getStepProvider(i, j) | titlecase }}
                                   </span>
-                                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeStep(i, j)">
-                                    <i class="bi bi-trash"></i>
-                                  </button>
+                                  <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-1" (click)="moveStep(i, j, -1)" [disabled]="j === 0" title="Move up">
+                                      <i class="bi bi-arrow-up"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-1" (click)="moveStep(i, j, 1)" [disabled]="j === getStepsControls(i).length - 1" title="Move down">
+                                      <i class="bi bi-arrow-down"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger px-1" (click)="removeStep(i, j)" title="Delete">
+                                      <i class="bi bi-trash"></i>
+                                    </button>
+                                  </div>
                                 </div>
                                 <div class="row g-2">
                                   <div class="col-md-4">
@@ -180,6 +188,12 @@ interface NotificationStep {
                             </div>
                           } @else {
                             <div class="input-group mb-2" [class.has-validation]="getStepControl(i, j)?.invalid">
+                              <button type="button" class="btn btn-outline-secondary btn-sm px-1" (click)="moveStep(i, j, -1)" [disabled]="j === 0" title="Move up">
+                                <i class="bi bi-arrow-up"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-secondary btn-sm px-1" (click)="moveStep(i, j, 1)" [disabled]="j === getStepsControls(i).length - 1" title="Move down">
+                                <i class="bi bi-arrow-down"></i>
+                              </button>
                               <span class="input-group-text bg-muted">$</span>
                               <input type="text" class="form-control" [formControlName]="j" placeholder="npm install"
                                      [class.is-invalid]="getStepControl(i, j)?.invalid && (getStepControl(i, j)?.touched || formSubmitted())"
@@ -235,6 +249,12 @@ interface NotificationStep {
                 <input type="checkbox" class="form-check-input" formControlName="enabled" id="enabled">
                 <label class="form-check-label" for="enabled">Enable Pipeline</label>
               </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="keepBuilds">Keep builds</label>
+              <input type="number" class="form-control" formControlName="keepBuilds" id="keepBuilds" min="1" max="100">
+              <div class="form-text">Number of old builds to keep (default: 10)</div>
             </div>
 
             <div class="form-section-title mt-4">
@@ -341,6 +361,7 @@ export class PipelineFormComponent implements OnInit {
       credentialId: [null],
       branch: ['main', Validators.required],
       enabled: [true],
+      keepBuilds: [10],
       triggers: this.fb.group({
         manual: [true],
         push: [false],
@@ -369,6 +390,7 @@ export class PipelineFormComponent implements OnInit {
       credentialId: pipeline.credentialId || null,
       branch: pipeline.branch,
       enabled: pipeline.enabled,
+      keepBuilds: pipeline.keepBuilds || 10,
       triggers: {
         manual: pipeline.triggers?.manual ?? true,
         push: pipeline.triggers?.push ?? false,
@@ -655,6 +677,43 @@ export class PipelineFormComponent implements OnInit {
       const stage = this.stages.at(index);
       this.stages.removeAt(index);
       this.stages.insert(newIndex, stage);
+    }
+  }
+
+  moveStep(stageIndex: number, stepIndex: number, direction: number): void {
+    const steps = this.getSteps(stageIndex);
+    const newStepIndex = stepIndex + direction;
+    if (newStepIndex >= 0 && newStepIndex < steps.length) {
+      const step = steps.at(stepIndex);
+      const notificationData = this.stages.at(stageIndex).get('notificationData') as FormGroup;
+      
+      const oldKey = `${stageIndex}-${stepIndex}`;
+      const newKey = `${stageIndex}-${newStepIndex}`;
+      
+      const oldNotificationKey = this.getStepKey(stageIndex, stepIndex);
+      const newNotificationKey = this.getStepKey(stageIndex, newStepIndex);
+      const notifData = this.notificationSteps().get(oldNotificationKey);
+      
+      if (notifData && notificationData) {
+        const newMap = new Map(this.notificationSteps());
+        newMap.delete(oldNotificationKey);
+        newMap.set(newNotificationKey, notifData);
+        this.notificationSteps.set(newMap);
+        
+        const oldControls = ['channel', 'credentialId', 'message'];
+        oldControls.forEach(ctrl => {
+          const oldName = `${oldKey}-${ctrl}`;
+          const newName = `${newKey}-${ctrl}`;
+          const control = notificationData.get(oldName);
+          if (control) {
+            notificationData.removeControl(oldName);
+            notificationData.addControl(newName, control);
+          }
+        });
+      }
+      
+      steps.removeAt(stepIndex);
+      steps.insert(newStepIndex, step);
     }
   }
 

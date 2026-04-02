@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const BuildExecutor = require('./services/BuildExecutor');
 const wsManager = require('./services/WebSocketManager');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { authenticate, optionalAuth } = require('./middleware/auth');
 
 // Routes
 const dashboardRoutes = require('./routes/dashboard');
@@ -32,7 +33,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static frontend files
-const frontendPath = path.resolve(process.cwd(), 'frontend/dist');
+const frontendPath = path.resolve(__dirname, 'frontend/dist');
 app.use(express.static(frontendPath));
 
 // Build executor (singleton)
@@ -41,37 +42,28 @@ app.set('buildExecutor', buildExecutor);
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/pipelines', pipelineRoutes);
-app.use('/api/builds', buildRoutes);
-app.use('/api/credentials', credentialRoutes);
+
+// Public routes
+app.use('/api/dashboard', optionalAuth, dashboardRoutes);
 app.use('/api/webhooks', webhookRoutes);
-app.use('/api/polling', pollingRoutes);
 
-// Catch-all for Angular routes - serve index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+// Protected routes
+app.use('/api/admin', authenticate, adminRoutes);
+app.use('/api/pipelines', authenticate, pipelineRoutes);
+app.use('/api/builds', authenticate, buildRoutes);
+app.use('/api/credentials', authenticate, credentialRoutes);
+app.use('/api/polling', authenticate, pollingRoutes);
+
+// Catch-all for SPA - serve index.html for any non-API routes
+app.get('*', (req, res, next) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  } else {
+    next();
+  }
 });
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    name: 'GiwiCD API',
-    version: '1.0.0',
-    description: 'CI/CD Engine REST API',
-    endpoints: {
-      dashboard: '/api/dashboard',
-      pipelines: '/api/pipelines',
-      builds: '/api/builds',
-      webhooks: '/api/webhooks',
-      polling: '/api/polling',
-      health: '/api/dashboard/health'
-    }
-  });
-});
-
-// 404 and Error handlers
+// Error handling
 app.use(notFound);
 app.use(errorHandler);
 

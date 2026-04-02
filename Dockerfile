@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
-RUN apk add --no-cache python3 make g++ git
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
@@ -20,6 +20,8 @@ COPY backend/src ./src
 COPY backend/.env.example ./.env
 
 FROM node:20-alpine
+
+RUN apk add --no-cache git
 
 WORKDIR /app
 

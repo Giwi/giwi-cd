@@ -25,13 +25,15 @@ class GitService {
     };
 
     const workDir = this._getWorkDir(repoUrl);
-    const isSSH = repoUrl.startsWith('git@') || repoUrl.includes(':');
+    const isSSH = repoUrl.startsWith('git@');
     let authUrl = repoUrl;
 
     if (credentialId && !isSSH) {
       const cred = Credential.getRaw(credentialId);
+      console.log(`[GitService] credentialId=${credentialId}, cred found:`, cred ? 'yes' : 'no', 'type:', cred?.type);
       if (cred) {
         authUrl = this._buildAuthUrl(repoUrl, cred);
+        console.log(`[GitService] authUrl:`, this._maskUrl(authUrl));
       }
     }
 
@@ -49,8 +51,16 @@ class GitService {
     try {
       const url = new URL(repoUrl);
       if (cred.type === 'username-password') {
-        url.username = encodeURIComponent(cred.username || '');
-        url.password = cred.password || '';
+        if (cred.password && cred.password.startsWith('glpat-')) {
+          url.username = 'oauth2';
+          url.password = cred.password;
+        } else if (cred.password && (cred.password.startsWith('ghp_') || cred.password.startsWith('github_pat_'))) {
+          url.username = 'x-access-token';
+          url.password = cred.password;
+        } else {
+          url.username = encodeURIComponent(cred.username || '');
+          url.password = cred.password || '';
+        }
       } else if (cred.type === 'token') {
         if (repoUrl.includes('github.com')) {
           url.username = 'x-access-token';

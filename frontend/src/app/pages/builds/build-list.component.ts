@@ -1,9 +1,11 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
+import { WebSocketService, WebSocketMessage } from '../../services/websocket.service';
 import { Build, Pipeline, ApiResponse, BuildStatus } from '../../models/types';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-build-list',
@@ -117,7 +119,8 @@ export class BuildListComponent implements OnInit {
 
   constructor(
     private api: ApiService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private wsService: WebSocketService
   ) {}
 
   ngOnInit(): void {
@@ -126,7 +129,21 @@ export class BuildListComponent implements OnInit {
       this.loadBuilds();
     });
     this.loadPipelines();
+    
+    this.wsService.connect();
+    this.wsSubscription = this.wsService.messages$.subscribe(msg => {
+      if (msg.type === 'build:created' || msg.type === 'build:start' || msg.type === 'build:complete') {
+        this.loadBuilds();
+      }
+    });
   }
+
+  ngOnDestroy(): void {
+    this.wsSubscription?.unsubscribe();
+    this.wsService.disconnect();
+  }
+
+  private wsSubscription?: Subscription;
 
   loadBuilds(): void {
     this.loading.set(true);

@@ -56,6 +56,12 @@ import { Credential, ApiResponse } from '../../models/types';
                   <option value="token">Access Token</option>
                   <option value="ssh-key">SSH Key</option>
                 </optgroup>
+                <optgroup label="Notifications">
+                  <option value="telegram">Telegram</option>
+                  <option value="slack">Slack</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="mail">Email</option>
+                </optgroup>
               </select>
             </div>
 
@@ -130,6 +136,39 @@ import { Credential, ApiResponse } from '../../models/types';
             }
             @if (form.get('type')?.value === 'ssh-key') {
               <p class="small text-muted">Generate a key: <code>ssh-keygen -t ed25519 -C "giwicd"</code></p>
+            }
+            @if (form.get('type')?.value === 'telegram') {
+              <p class="small text-muted">Create a bot via @BotFather on Telegram and get the API token.</p>
+              <div class="mb-3">
+                <label class="form-label">Bot Token *</label>
+                <input type="text" class="form-control" formControlName="token" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                       [class.is-invalid]="form.get('token')?.invalid && (form.get('token')?.touched || formSubmitted())">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Chat ID *</label>
+                <input type="text" class="form-control" formControlName="username" placeholder="Your chat ID">
+              </div>
+            }
+            @if (form.get('type')?.value === 'slack') {
+              <p class="small text-muted">Create an incoming webhook in your Slack workspace settings.</p>
+              <div class="mb-3">
+                <label class="form-label">Webhook URL *</label>
+                <input type="text" class="form-control" formControlName="token" placeholder="https://hooks.slack.com/services/...">
+              </div>
+            }
+            @if (form.get('type')?.value === 'teams') {
+              <p class="small text-muted">Create an incoming webhook in your Teams channel settings.</p>
+              <div class="mb-3">
+                <label class="form-label">Webhook URL *</label>
+                <input type="text" class="form-control" formControlName="token" placeholder="https://outlook.office.com/webhook/...">
+              </div>
+            }
+            @if (form.get('type')?.value === 'mail') {
+              <p class="small text-muted">Configure SMTP settings in system settings for email notifications.</p>
+              <div class="mb-3">
+                <label class="form-label">Default Recipient Email *</label>
+                <input type="email" class="form-control" formControlName="username" placeholder="notify@example.com">
+              </div>
             }
 
             <hr class="my-4">
@@ -207,6 +246,10 @@ export class CredentialFormComponent implements OnInit {
       this.form.get('token')?.setValidators(Validators.required);
     } else if (type === 'ssh-key') {
       this.form.get('privateKey')?.setValidators(Validators.required);
+    } else if (['telegram', 'slack', 'teams'].includes(type)) {
+      this.form.get('token')?.setValidators(Validators.required);
+    } else if (type === 'mail') {
+      this.form.get('username')?.setValidators(Validators.required);
     }
 
     this.form.get('username')?.updateValueAndValidity();
@@ -262,6 +305,9 @@ export class CredentialFormComponent implements OnInit {
     } else if (value.type === 'ssh-key') {
       if (value.privateKey) data.privateKey = value.privateKey;
       if (value.passphrase) data.passphrase = value.passphrase;
+    } else if (['telegram', 'slack', 'teams', 'mail'].includes(value.type)) {
+      if (value.token) data.token = value.token;
+      if (value.username) data.username = value.username;
     }
 
     const request = id
@@ -272,7 +318,11 @@ export class CredentialFormComponent implements OnInit {
       next: (res) => {
         this.submitting.set(false);
         if (res.success) {
-          this.router.navigate(['/settings/credentials']);
+          if (['telegram', 'slack', 'teams', 'mail'].includes(value.type)) {
+            this.router.navigate(['/settings/notifications']);
+          } else {
+            this.router.navigate(['/settings/credentials']);
+          }
         }
       },
       error: () => this.submitting.set(false)

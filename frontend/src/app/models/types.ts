@@ -16,6 +16,7 @@ export interface Pipeline {
   environment: EnvVar[];
   status: string;
   enabled: boolean;
+  keepBuilds?: number;
   createdAt: string;
   updatedAt: string;
   lastBuildAt: string | null;

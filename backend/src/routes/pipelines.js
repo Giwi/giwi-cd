@@ -89,9 +89,6 @@ router.post('/:id/trigger', async (req, res) => {
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
   if (!pipeline.enabled) return res.status(400).json({ success: false, error: 'Pipeline is disabled' });
 
-  const executor = req.app.get('buildExecutor');
-  const runningBuilds = executor.getRunningBuilds();
-
   const build = Build.create({
     pipelineId: pipeline.id,
     pipelineName: pipeline.name,
@@ -102,9 +99,18 @@ router.post('/:id/trigger', async (req, res) => {
     stages: (pipeline.stages || []).map(s => ({ ...s, status: 'pending' }))
   });
 
-  // Execute build asynchronously
-  executor.execute(build, pipeline).catch(err => {
-    console.error('[BUILD] Execution error:', err.message);
+  // Broadcast that a new build was created
+  const wsManager = req.app.get('wsManager');
+  if (wsManager) {
+    wsManager.broadcast({ type: 'build:created', buildId: build.id, pipelineId: pipeline.id });
+  }
+
+  // Execute build in next tick to not block the response
+  setImmediate(() => {
+    const executor = req.app.get('buildExecutor');
+    executor.execute(build, pipeline).catch(err => {
+      console.error('[BUILD] Execution error:', err.message);
+    });
   });
 
   res.status(202).json({ success: true, data: build, message: 'Build triggered successfully' });

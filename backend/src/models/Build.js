@@ -115,6 +115,25 @@ class Build {
     db.get('builds').remove({ id }).write();
     return true;
   }
+
+  static cleanOldBuilds(pipelineId, keepCount) {
+    if (!keepCount || keepCount <= 0) return;
+    
+    const builds = db.get('builds')
+      .filter({ pipelineId })
+      .sortBy('createdAt')
+      .reverse()
+      .value();
+    
+    if (builds.length <= keepCount) return;
+    
+    const toDelete = builds.slice(keepCount);
+    const idsToDelete = toDelete.map(b => b.id);
+    
+    const allBuilds = db.get('builds').value();
+    const filteredBuilds = allBuilds.filter(b => !idsToDelete.includes(b.id));
+    db.set('builds', filteredBuilds).write();
+  }
 }
 
 module.exports = Build;
