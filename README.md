@@ -10,12 +10,16 @@
 ## Features
 
 - **Pipeline Management** - Create and manage CI/CD pipelines with multiple stages
+- **Drag & Drop Reordering** - Easily reorder stages and steps in pipelines
 - **Git Integration** - Automatic git checkout with SSH/HTTPS credential support
-- **Real-time Builds** - Live build logs via WebSocket
+- **Real-time Builds** - Live build logs and progress visualization via WebSocket
+- **Build History Auto-refresh** - Automatically updates when builds start or complete
 - **User Management** - Role-based access control (Admin/Contributor)
-- **Credential Manager** - Secure storage for SSH keys and tokens
-- **Notifications** - Send build status to Telegram, Slack, Teams, and Email
+- **Credential Manager** - Secure storage for SSH keys, tokens, and notification credentials
+- **Notifications** - Send build status to Telegram, Slack, Teams, and Email during build execution
+- **Dynamic Variables** - Build notifications support {{PIPELINE_NAME}}, {{BUILD_NUMBER}}, {{BRANCH}}, {{STATUS}}, {{COMMIT}}, {{DURATION}}, {{BUILD_URL}}
 - **Push Polling** - Automatically detect new commits and trigger builds
+- **Build Retention** - Configure how many builds to keep per pipeline
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 
@@ -77,8 +81,8 @@ giwicd/
 ├── backend/                  # Node.js/Express API
 │   ├── src/
 │   │   ├── routes/          # API endpoints
-│   │   ├── models/           # Data models
-│   │   ├── services/         # Build executor, Git service
+│   │   ├── models/           # Data models (Pipeline, Build, Credential, User)
+│   │   ├── services/         # Build executor, Git service, WebSocket manager
 │   │   └── middleware/       # Auth, error handling
 │   ├── data/                 # JSON database
 │   └── Dockerfile
@@ -86,9 +90,10 @@ giwicd/
 │   ├── src/app/
 │   │   ├── pages/            # Page components
 │   │   ├── services/         # API, Auth, WebSocket
-│   │   └── guards/           # Route protection
+│   │   └── components/       # Reusable components
 │   └── Dockerfile.frontend
 ├── docker-compose.yml
+├── docs/                     # Documentation
 └── README.md
 ```
 

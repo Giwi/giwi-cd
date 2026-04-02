@@ -5,15 +5,22 @@
 ## Features
 
 - **Pipeline Management** - Create and manage CI/CD pipelines with multiple stages
+- **Drag & Drop Reordering** - Easily reorder stages and steps in pipelines
 - **Git Integration** - Automatic git checkout with SSH/HTTPS credential support
-- **Real-time Builds** - Live build logs via WebSocket
+- **Real-time Builds** - Live build logs and progress visualization via WebSocket
+- **Build History Auto-refresh** - Automatically updates when builds start or complete
+- **Stage Progress Visualization** - Horizontal pill-based progress bar showing build stages
 - **User Management** - Role-based access control (Admin/Contributor)
-- **Credential Manager** - Secure storage for SSH keys and tokens
-- **Notifications** - Send build status to Telegram, Slack, Teams, and Email (SMTP)
+- **Credential Manager** - Secure storage for SSH keys, tokens, and notification credentials
+- **Notifications** - Send build status to Telegram, Slack, Teams, and Email during build execution
+- **Dynamic Variables** - Build notifications support {{PIPELINE_NAME}}, {{BUILD_NUMBER}}, {{BRANCH}}, {{STATUS}}, {{COMMIT}}, {{DURATION}}, {{BUILD_URL}}
+- **Real-time DURATION** - Duration variable is calculated dynamically during build execution
 - **Push Polling** - Automatically detect new commits and trigger builds
+- **Build Retention** - Configure how many builds to keep per pipeline (keepBuilds parameter)
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 - **Import/Export** - Share pipelines as JSON files
+- **API Authentication** - All API endpoints (except auth, dashboard, webhooks) require JWT authentication
 
 ## Prerequisites
 
@@ -292,7 +299,7 @@ GiwiCD supports sending build status notifications to multiple platforms.
    - **Teams**: Webhook URL (from Teams incoming webhook connector)
    - **Email**: Recipient email address (SMTP configured in server settings)
 
-**Note:** Notification steps are executed after the build completes, so variables like `{{DURATION}}` will show the full build duration.
+**Note:** Notification steps are executed when the step is reached during the build. The `{{DURATION}}` variable is calculated dynamically at the time the notification is sent, so it reflects the elapsed time up to that point in the build.
 
 #### Setting up Email Notifications
 
