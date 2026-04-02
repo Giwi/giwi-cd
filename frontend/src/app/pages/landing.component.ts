@@ -628,4 +628,14 @@ import { Title, Meta } from '@angular/platform-browser';
     }
   `]
 })
-export class LandingComponent {}
+export class LandingComponent {
+  constructor(private title: Title, private meta: Meta) {
+    this.title.setTitle('GiwiCD - Modern CI/CD Engine');
+    this.meta.updateTag({ name: 'description', content: 'GiwiCD is a modern, self-hosted CI/CD engine for automated build, test, and deployment workflows. Open source and free to use.' });
+    this.meta.updateTag({ name: 'keywords', content: 'CI/CD, continuous integration, continuous deployment, DevOps, automation, build automation, open source, self-hosted' });
+    this.meta.updateTag({ property: 'og:title', content: 'GiwiCD - Modern CI/CD Engine' });
+    this.meta.updateTag({ property: 'og:description', content: 'A modern, self-hosted CI/CD engine for automated build, test, and deployment workflows.' });
+    this.meta.updateTag({ name: 'twitter:title', content: 'GiwiCD - Modern CI/CD Engine' });
+    this.meta.updateTag({ name: 'twitter:description', content: 'A modern, self-hosted CI/CD engine for automated build, test, and deployment workflows.' });
+  }
+}
