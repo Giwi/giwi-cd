@@ -3,6 +3,8 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const Credential = require('../models/Credential');
+const { retry } = require('../utils/retry');
+const logger = require('../config/logger');
 
 class GitService {
   constructor(wsManager) {
