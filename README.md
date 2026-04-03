@@ -2,7 +2,7 @@
 
 > A modern, self-hosted CI/CD platform built with Node.js, Express, and Angular
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Angular](https://img.shields.io/badge/Angular-20-red)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green)
@@ -10,22 +10,28 @@
 ## Features
 
 - **Pipeline Management** - Create and manage CI/CD pipelines with multiple stages
+- **Pipeline Templates** - Pre-built templates for Node.js, Python, Go, Java, Rust, Docker, and more
 - **Drag & Drop Reordering** - Easily reorder stages and steps in pipelines
 - **Git Integration** - Automatic git checkout with SSH/HTTPS credential support
 - **Real-time Builds** - Live build logs and progress visualization via WebSocket
 - **Build History Auto-refresh** - Automatically updates when builds start or complete
+- **Enhanced Log Viewer** - Search/filter logs by level, auto-scroll toggle, line numbers
 - **User Management** - Role-based access control (Admin/User)
 - **Credential Manager** - Secure storage for SSH keys, tokens, and notification credentials
 - **Notifications** - Send build status to Telegram, Slack, Teams, and Email during build execution
 - **Dynamic Variables** - Build notifications support {{PIPELINE_NAME}}, {{BUILD_NUMBER}}, {{BRANCH}}, {{STATUS}}, {{COMMIT}}, {{DURATION}}, {{BUILD_URL}}
 - **Push Polling** - Automatically detect new commits and trigger builds
 - **Build Retention** - Configure how many builds to keep per pipeline
+- **Artifact Storage** - Store and download build artifacts
+- **System Logs** - Admin access to server logs with search/filter
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 - **API Pagination** - paginated list endpoints
+- **API Versioning** - `/api/v1/` prefix for backward compatibility
 - **Health Checks** - Kubernetes-ready liveness/readiness probes
 - **TypeScript Support** - Type-safe backend with optional compilation
 - **Comprehensive Tests** - Jest test suite with coverage
+- **Graceful Shutdown** - Wait for builds to complete before stopping
 
 ## Quick Start
 
@@ -96,28 +102,45 @@ npm run test:coverage # Coverage report
 
 ## API Endpoints
 
+> All endpoints support both `/api/` and `/api/v1/` prefixes for backward compatibility.
+
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
+| `/api/version` | GET | No | Get API version |
 | `/api/health` | GET | No | Health check |
 | `/api/health/live` | GET | No | Liveness probe |
 | `/api/health/ready` | GET | No | Readiness probe |
 | `/api/auth/register` | POST | No | Register user |
 | `/api/auth/login` | POST | No | Login |
+| `/api/dashboard` | GET | Optional | Dashboard stats |
 | `/api/pipelines` | GET | Yes | List pipelines (paginated) |
 | `/api/pipelines` | POST | Yes | Create pipeline |
 | `/api/pipelines/:id` | GET | Yes | Get pipeline |
 | `/api/pipelines/:id` | PUT | Yes | Update pipeline |
 | `/api/pipelines/:id` | DELETE | Yes | Delete pipeline |
 | `/api/pipelines/:id/trigger` | POST | Yes | Trigger build |
+| `/api/pipelines/:id/toggle` | PATCH | Yes | Enable/disable pipeline |
+| `/api/pipelines/:id/cancel` | POST | Yes | Cancel running build |
 | `/api/builds` | GET | Yes | List builds (paginated) |
 | `/api/builds/:id` | GET | Yes | Get build |
 | `/api/builds/:id/cancel` | POST | Yes | Cancel build |
 | `/api/builds/:id/logs` | GET | Yes | Get build logs |
 | `/api/credentials` | GET | Yes | List credentials |
 | `/api/credentials` | POST | Yes | Create credential |
+| `/api/credentials/:id` | GET | Yes | Get credential |
+| `/api/credentials/:id` | PUT | Yes | Update credential |
+| `/api/credentials/:id` | DELETE | Yes | Delete credential |
 | `/api/credentials/:id/test` | POST | Yes | Test notification |
+| `/api/artifacts/:pipelineId/:buildId` | GET | Yes | List artifacts |
+| `/api/artifacts/:name` | GET | Yes | Download artifact |
 | `/api/admin/users` | GET | Admin | List users |
+| `/api/admin/users` | POST | Admin | Create user |
+| `/api/admin/users/:id` | PUT | Admin | Update user |
+| `/api/admin/users/:id` | DELETE | Admin | Delete user |
 | `/api/admin/settings` | GET | Admin | Get settings |
+| `/api/admin/settings` | PUT | Admin | Update settings |
+| `/api/admin/logs` | GET | Admin | Get server logs |
+| `/api/admin/logs` | DELETE | Admin | Clear logs |
 
 ## Documentation
 

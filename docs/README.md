@@ -5,10 +5,12 @@
 ## Features
 
 - **Pipeline Management** - Create and manage CI/CD pipelines with multiple stages
+- **Pipeline Templates** - Pre-built templates for Node.js, Python, Go, Java, Rust, Docker, Static Site
 - **Drag & Drop Reordering** - Easily reorder stages and steps in pipelines
 - **Git Integration** - Automatic git checkout with SSH/HTTPS credential support
 - **Real-time Builds** - Live build logs and progress visualization via WebSocket
 - **Build History Auto-refresh** - Automatically updates when builds start or complete
+- **Enhanced Log Viewer** - Search/filter by text, level filters with toggle buttons, auto-scroll toggle, line numbers
 - **Stage Progress Visualization** - Horizontal pill-based progress bar showing build stages
 - **User Management** - Role-based access control (Admin/User)
 - **Credential Manager** - Secure storage for SSH keys, tokens, and notification credentials
@@ -17,10 +19,13 @@
 - **Real-time DURATION** - Duration variable is calculated dynamically during build execution
 - **Push Polling** - Automatically detect new commits and trigger builds
 - **Build Retention** - Configure how many builds to keep per pipeline (keepBuilds parameter)
+- **Artifact Storage** - Store and download build artifacts
+- **System Logs** - Admin page to view server logs with search/filter
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 - **Import/Export** - Share pipelines as JSON files
 - **API Authentication** - All API endpoints (except auth, dashboard, webhooks, health) require JWT authentication
+- **API Versioning** - `/api/v1/` prefix for backward compatibility
 - **TypeScript Support** - Type-safe backend with optional compilation
 - **Input Validation** - All endpoints validated with express-validator
 - **Rate Limiting** - API, auth, and trigger endpoints have rate limits
@@ -28,6 +33,8 @@
 - **API Pagination** - All list endpoints support page/limit
 - **Health Checks** - Kubernetes-ready liveness/readiness probes
 - **Test Framework** - Jest test suite with supertest
+- **Graceful Shutdown** - Wait for running builds to complete before stopping
+- **Build Queue** - FIFO queue with max concurrent builds limit
 
 ## Prerequisites
 

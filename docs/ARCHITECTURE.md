@@ -44,8 +44,11 @@ User Action
 
 ## API Routes
 
+> All routes support `/api/` and `/api/v1/` prefixes
+
 ```
 /api
+├── /version              - API version info
 ├── /health
 │   ├── GET    /               - Full health check
 │   ├── GET    /live           - Liveness probe
@@ -58,6 +61,11 @@ User Action
 │   ├── PUT    /me             - Update profile
 │   └── PUT    /password       - Change password
 │
+├── /dashboard            - Dashboard statistics (optional auth)
+│
+├── /webhooks
+│   └── /webhook/:id      - Trigger pipeline from git
+│
 ├── /pipelines
 │   ├── GET    /               - List pipelines (paginated)
 │   ├── GET    /:id            - Get pipeline details
@@ -67,6 +75,7 @@ User Action
 │   ├── DELETE /:id            - Delete pipeline
 │   ├── POST  /:id/trigger    - Trigger build
 │   ├── POST  /:id/toggle     - Enable/disable pipeline
+│   ├── PATCH /:id/cancel     - Cancel running build
 │   └── GET   /:id/builds     - Get pipeline builds (paginated)
 │
 ├── /builds

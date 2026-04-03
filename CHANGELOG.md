@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-04-03
+
+### Added
+
+- **Pipeline Templates** - Pre-built templates for common stacks (Node.js, Python, Go, Java, Rust, Docker, Static Site)
+- **Enhanced Log Viewer** - Search/filter by text, level filters with toggle buttons, auto-scroll toggle, line numbers, colored badges
+- **System Logs** - Admin-only page to view server logs with search/filter/level, clear logs capability
+- **API Versioning** - `/api/v1/` prefix for backward compatibility
+- **Artifact Storage** - Store and download build artifacts via `/api/artifacts`
+- **Build Queue** - FIFO queue with max concurrent builds limit
+- **Retry Logic** - Exponential backoff for transient failures (git/network errors)
+- **Graceful Shutdown** - Wait for running builds to complete before stopping
+- **Credential Caching** - 5-minute TTL cache to reduce DB reads during builds
+- **Database Indexes** - In-memory Maps for fast lookups by ID
+
+### Changed
+
+- **Frontend API** - Now uses `/api/v1/` prefix
+- **Tests** - Fixed Jest open handles issue with CredentialCache
+
 ## [1.1.0] - 2026-04-03
 
 ### Added
