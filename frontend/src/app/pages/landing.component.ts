@@ -599,33 +599,138 @@ import { Title, Meta } from '@angular/platform-browser';
       }
     }
 
-    @media (max-width: 768px) {
-      .hero {
-        grid-template-columns: 1fr;
-        text-align: center;
-        gap: 2rem;
-      }
+     @media (max-width: 768px) {
+       .landing-nav {
+         flex-wrap: wrap;
+         gap: 0.5rem;
+       }
 
-      .hero-title {
-        font-size: 2.5rem;
-      }
+       .nav-links {
+         width: 100%;
+         justify-content: flex-end;
+         margin-top: 0.5rem;
+       }
 
-      .hero-subtitle {
-        margin: 0 auto 2rem;
-      }
+       .hero {
+         grid-template-columns: 1fr;
+         text-align: center;
+         gap: 2rem;
+         padding: 3rem 1rem;
+       }
 
-      .hero-actions {
-        justify-content: center;
-      }
+       .hero-title {
+         font-size: 2.2rem;
+       }
 
-      .features-grid {
-        grid-template-columns: 1fr;
-      }
+       .hero-subtitle {
+         margin: 0 auto 1.5rem;
+         font-size: 1.1rem;
+         max-width: none;
+       }
 
-      .tech-items {
-        gap: 1.5rem;
-      }
-    }
+       .hero-actions {
+         justify-content: center;
+         flex-wrap: wrap;
+         gap: 0.5rem;
+       }
+
+       .hero-actions .btn {
+         flex: 1 1 150px;
+         text-align: center;
+         padding: 0.75rem 1rem;
+       }
+
+       .hero-visual {
+         margin-top: 2rem;
+       }
+
+       .dashboard-mockup {
+         max-width: 90%;
+         transform: rotateY(0deg) rotateX(0deg);
+       }
+
+       .dashboard-mockup:hover {
+         transform: rotateY(0deg) rotateX(0deg);
+       }
+
+       .workflow-section {
+         padding: 4rem 1rem;
+       }
+
+       .workflow-steps {
+         flex-direction: column;
+         gap: 2rem;
+         align-items: stretch;
+       }
+
+       .workflow-step {
+         max-width: none;
+       }
+
+       .features {
+         padding: 4rem 1rem;
+       }
+
+       .features-grid {
+         grid-template-columns: 1fr;
+       }
+
+       .feature-card {
+         text-align: center;
+       }
+
+       .feature-icon {
+         margin: 0 auto 1.5rem;
+       }
+
+       .landing-footer {
+         font-size: 0.75rem;
+         padding: 0.5rem 1rem;
+       }
+     }
+
+     @media (max-width: 480px) {
+       .hero-title {
+         font-size: 1.8rem;
+       }
+
+       .hero-subtitle {
+         font-size: 1rem;
+       }
+
+       .landing-nav {
+         padding: 0.75rem 1rem;
+       }
+
+       .nav-brand {
+         font-size: 1.1rem;
+       }
+
+       .nav-brand i {
+         font-size: 1.25rem;
+       }
+
+       .hero-actions .btn {
+         flex: 1 1 100%;
+         margin-bottom: 0.25rem;
+       }
+
+       .section-title {
+         font-size: 1.75rem;
+       }
+
+       .feature-card {
+         padding: 1.5rem;
+       }
+
+       .feature-card h3 {
+         font-size: 1rem;
+       }
+
+       .feature-card p {
+         font-size: 0.8rem;
+       }
+     }
   `]
 })
 export class LandingComponent {
