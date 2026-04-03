@@ -34,7 +34,7 @@ export class AuthService {
   }
 
   private initAuth(): void {
-    const token = localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem(this.tokenKey) as any;
     const userStr = localStorage.getItem(this.userKey);
     
     if (token && userStr) {
