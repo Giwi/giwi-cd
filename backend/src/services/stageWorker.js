@@ -1,5 +1,6 @@
 const { parentPort, workerData } = require('worker_threads');
 const path = require('path');
+const { exec } = require('child_process');
 
 const modelsPath = path.resolve(__dirname, '../models');
 const Build = require(path.join(modelsPath, 'Build'));
@@ -9,6 +10,8 @@ const NotificationService = require('./NotificationService');
 
 const { buildId, stage, pipeline, workDir } = workerData;
 
+let cancelled = false;
+
 const emit = (level, message) => {
   parentPort.postMessage({ type: 'log', buildId, level, message });
 };
@@ -16,6 +19,12 @@ const emit = (level, message) => {
 const emitWithBuildId = (bid, level, message) => {
   emit(level, message);
 };
+
+parentPort.on('message', (msg) => {
+  if (msg === 'cancel') {
+    cancelled = true;
+  }
+});
 
 async function executeStage() {
   const commandExecutor = new CommandExecutor(emitWithBuildId);
@@ -26,6 +35,11 @@ async function executeStage() {
   const steps = stage.steps || [];
 
   for (let sIdx = 0; sIdx < steps.length; sIdx++) {
+    if (cancelled) {
+      emit('warn', '⚠️ Stage cancelled');
+      return false;
+    }
+
     const step = steps[sIdx];
 
     if (step.type === 'notification') {
@@ -42,6 +56,11 @@ async function executeStage() {
 
       const stepWorkingDir = step.workingDir || workDir;
       const result = await commandExecutor.execute(buildId, command, stepWorkingDir);
+
+      if (cancelled) {
+        emit('warn', '⚠️ Stage cancelled after step');
+        return false;
+      }
 
       if (!result.success && step.continueOnError !== true) {
         return false;
@@ -89,5 +108,9 @@ executeStage()
     parentPort.postMessage({ type: 'complete', buildId, success });
   })
   .catch(err => {
-    parentPort.postMessage({ type: 'error', buildId, message: err.message });
+    if (err.message === 'The worker has been terminated') {
+      emit('warn', '⚠️ Stage worker terminated');
+    } else {
+      parentPort.postMessage({ type: 'error', buildId, message: err.message });
+    }
   });

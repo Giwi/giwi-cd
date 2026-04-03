@@ -350,9 +350,7 @@ class BuildExecutor extends EventEmitter {
   cancel(buildId) {
     const running = this.runningBuilds.get(buildId);
     if (running) {
-      if (running.process) {
-        running.process.kill();
-      }
+      this._terminateWorker(buildId);
       this.runningBuilds.delete(buildId);
       Build.updateStatus(buildId, 'cancelled');
       this._emit(buildId, 'warn', '⚠️ Build cancelled by user');
@@ -360,6 +358,25 @@ class BuildExecutor extends EventEmitter {
       return true;
     }
     return false;
+  }
+
+  _terminateWorker(buildId) {
+    const worker = this.stageWorkers.get(buildId);
+    if (worker) {
+      worker.terminate().catch(() => {});
+      this.stageWorkers.delete(buildId);
+      this._emit(buildId, 'warn', '⚠️ Stage worker terminated');
+    }
+  }
+
+  terminateAll() {
+    for (const buildId of this.stageWorkers.keys()) {
+      this._terminateWorker(buildId);
+    }
+    for (const buildId of this.runningBuilds.keys()) {
+      this.runningBuilds.delete(buildId);
+      Build.updateStatus(buildId, 'cancelled');
+    }
   }
 
   getRunningBuilds() {
