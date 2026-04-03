@@ -34,6 +34,7 @@ Thumbs.db
 # Backend
 backend/data/*.json
 backend/data/*.db
+logs/
 
 # Test coverage
 coverage/

@@ -1,20 +1,21 @@
 const config = require('./index');
+const logger = require('./logger');
 
 function validateEnvironment() {
   if (!config.security.jwtSecret || config.security.jwtSecret === 'giwicd-secret-key-change-in-production') {
     if (config.isProduction()) {
-      console.error('[CONFIG] ERROR: JWT_SECRET must be set in production');
+      logger.error('JWT_SECRET must be set in production');
       process.exit(1);
     }
   }
 
   if (config.isProduction()) {
-    console.log('[CONFIG] Running in PRODUCTION mode');
+    logger.info('Running in PRODUCTION mode');
   } else {
-    console.log('[CONFIG] Running in DEVELOPMENT mode');
+    logger.info('Running in DEVELOPMENT mode');
   }
 
-  console.log('[CONFIG] Environment validation passed');
+  logger.info('Environment validation passed');
   return true;
 }
 

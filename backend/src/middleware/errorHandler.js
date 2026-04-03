@@ -1,5 +1,7 @@
+const { logger } = require('./logger');
+
 const errorHandler = (err, req, res, next) => {
-  console.error('[ERROR]', err.stack || err.message);
+  logger.error(err.stack || err.message);
 
   const status = err.status || err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
@@ -12,6 +14,7 @@ const errorHandler = (err, req, res, next) => {
 };
 
 const notFound = (req, res) => {
+  logger.warn(`Route not found: ${req.method} ${req.path}`);
   res.status(404).json({
     success: false,
     error: `Route not found: ${req.method} ${req.path}`

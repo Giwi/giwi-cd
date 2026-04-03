@@ -1,6 +1,7 @@
 require('dotenv').config();
 const http = require('http');
 const config = require('./config');
+const logger = require('./config/logger');
 const { validateEnvironment } = require('./config/validateEnv');
 validateEnvironment();
 const app = require('./app');
@@ -21,19 +22,19 @@ pollingService.start();
 app.set('pollingService', pollingService);
 
 process.on('SIGTERM', () => {
-  console.log('[SERVER] SIGTERM signal received, shutting down gracefully...');
+  logger.info('SIGTERM signal received, shutting down gracefully...');
   pollingService.stop();
   server.close(() => {
-    console.log('[SERVER] HTTP server closed');
+    logger.info('HTTP server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('\n[SERVER] SIGINT signal received, shutting down gracefully...');
+  logger.info('SIGINT signal received, shutting down gracefully...');
   pollingService.stop();
   server.close(() => {
-    console.log('[SERVER] HTTP server closed');
+    logger.info('HTTP server closed');
     process.exit(0);
   });
 });
@@ -41,7 +42,7 @@ process.on('SIGINT', () => {
 server.listen(PORT, () => {
   const env = config.get('server.env').padEnd(14);
   const polling = `enabled (${config.get('build.pollingInterval')}s interval)`;
-  console.log(`
+  logger.info(`
 ╔═══════════════════════════════════════════╗
 ║           GiwiCD - CI/CD Engine           ║
 ╠═══════════════════════════════════════════╣
