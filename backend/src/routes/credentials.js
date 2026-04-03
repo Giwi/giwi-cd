@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const Credential = require('../models/Credential');
 const { asyncHandler } = require('../middleware/asyncHandler');
+const { sanitizeCredential } = require('../utils/sanitize');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -40,7 +41,8 @@ router.post('/', [
   body('privateKey').optional().isLength({ max: 10000 }).withMessage('Private key must be less than 10000 characters'),
   body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters')
 ], validate, (req, res) => {
-  const { name, type, username, password, token, privateKey, passphrase, description } = req.body;
+  const sanitized = sanitizeCredential(req.body);
+  const { name, type, username, password, token, privateKey, passphrase, description } = sanitized;
 
   const credential = Credential.create({
     name, type, username, password, token, privateKey, passphrase, description
@@ -63,7 +65,8 @@ router.put('/:id', [
   const credential = Credential.findById(req.params.id);
   if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
 
-  const updated = Credential.update(req.params.id, req.body);
+  const sanitized = sanitizeCredential(req.body);
+  const updated = Credential.update(req.params.id, sanitized);
   res.json({ success: true, data: updated, message: 'Credential updated successfully' });
 });
 
@@ -87,7 +90,8 @@ router.post('/:id/test', [
   const credential = Credential.findById(req.params.id);
   if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
 
-  const { channel, message } = req.body;
+  const sanitized = sanitizeCredential(req.body);
+  const { channel, message } = sanitized;
 
   if (!['telegram', 'slack', 'teams', 'mail'].includes(credential.type)) {
     return res.status(400).json({ success: false, error: 'This credential type does not support test notifications' });

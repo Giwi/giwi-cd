@@ -7,6 +7,7 @@ const Credential = require('../models/Credential');
 const { triggerLimiter } = require('../middleware/rateLimit');
 const { asyncHandler } = require('../middleware/asyncHandler');
 const { createPagination, paginate } = require('../middleware/pagination');
+const { sanitizePipeline } = require('../utils/sanitize');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -54,7 +55,8 @@ router.post('/', [
   body('stages').optional().isArray().withMessage('Stages must be an array'),
   body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100')
 ], validate, (req, res) => {
-  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds } = req.body;
+  const sanitized = sanitizePipeline(req.body);
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds } = sanitized;
 
   const pipeline = Pipeline.create({ name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds });
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline created successfully' });
@@ -65,7 +67,8 @@ router.post('/import', [
   body('name').notEmpty().trim().withMessage('Pipeline name is required')
     .isLength({ max: 100 }).withMessage('Name must be less than 100 characters')
 ], validate, (req, res) => {
-  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment } = req.body;
+  const sanitized = sanitizePipeline(req.body);
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment } = sanitized;
 
   const pipeline = Pipeline.create({ 
     name, 
@@ -94,7 +97,8 @@ router.put('/:id', [
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
-  const updated = Pipeline.update(req.params.id, req.body);
+  const sanitized = sanitizePipeline(req.body);
+  const updated = Pipeline.update(req.params.id, sanitized);
   res.json({ success: true, data: updated, message: 'Pipeline updated successfully' });
 });
 
