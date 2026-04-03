@@ -15,7 +15,9 @@ class Config {
     };
 
     this.database = {
-      file: path.resolve(process.cwd(), process.env.DB_FILE || './data/db.json')
+      type: process.env.DB_TYPE || 'json',
+      file: path.resolve(process.cwd(), process.env.DB_FILE || './data/db.json'),
+      connectionString: process.env.DATABASE_URL || ''
     };
 
     this.security = {
