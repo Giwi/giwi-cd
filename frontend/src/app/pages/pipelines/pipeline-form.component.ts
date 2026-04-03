@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Va
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
+import { PipelineTemplatesService, PipelineTemplate } from '../../services/pipeline-templates.service';
 import { Pipeline, Stage, Step, Credential, ApiResponse } from '../../models/types';
 
 interface NotificationStep {
@@ -33,6 +34,27 @@ interface NotificationStep {
     </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      @if (!isEdit()) {
+        <div class="form-section mb-4">
+          <div class="form-section-title">
+            <i class="bi bi-layout-text-window-reverse"></i> Start from a Template
+          </div>
+          <div class="template-grid">
+            @for (template of templates; track template.id) {
+              <div class="template-card" [class.selected]="selectedTemplate()?.id === template.id" (click)="selectTemplate(template)">
+                <div class="template-icon">
+                  <i class="bi {{ template.icon }}"></i>
+                </div>
+                <div class="template-info">
+                  <h6 class="mb-1">{{ template.name }}</h6>
+                  <p class="small text-muted mb-0">{{ template.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
       <div class="row g-4">
         <div class="col-lg-8">
           <div class="form-section">
@@ -317,7 +339,10 @@ export class PipelineFormComponent implements OnInit {
   submitting = signal(false);
   formSubmitted = signal(false);
   notificationSteps = signal<Map<string, { provider: string; channel?: string; credentialId?: string; message?: string }>>(new Map());
+  templates: PipelineTemplate[] = [];
+  selectedTemplate = signal<PipelineTemplate | null>(null);
   private toastService = inject(ToastService);
+  private templatesService = inject(PipelineTemplatesService);
 
   constructor(
     private fb: FormBuilder,
@@ -327,11 +352,23 @@ export class PipelineFormComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.templates = this.templatesService.getTemplates();
     this.initForm();
     this.loadCredentials();
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadPipeline(id);
+    }
+  }
+
+  selectTemplate(template: PipelineTemplate): void {
+    this.selectedTemplate.set(template);
+    this.stages.clear();
+    (template.stages || []).forEach((stage, sIdx) => {
+      this.addStage(stage, sIdx);
+    });
+    if (template.branch) {
+      this.form.get('branch')?.setValue(template.branch);
     }
   }
 
