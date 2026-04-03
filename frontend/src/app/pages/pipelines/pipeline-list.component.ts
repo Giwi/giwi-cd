@@ -146,7 +146,7 @@ export class PipelineListComponent implements OnInit {
     this.loading.set(true);
     this.api.get<ApiResponse<Pipeline[]>>('/pipelines').subscribe({
       next: (res) => {
-        this.pipelines.set(res.data);
+        this.pipelines.set(res.data || []);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)

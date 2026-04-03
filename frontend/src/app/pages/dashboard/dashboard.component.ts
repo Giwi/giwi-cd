@@ -225,7 +225,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
 
     this.api.get<ApiResponse<Pipeline[]>>('/pipelines').subscribe({
-      next: (res) => this.pipelines.set(res.data)
+      next: (res) => this.pipelines.set(res.data || [])
     });
   }
 
