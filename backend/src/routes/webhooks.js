@@ -77,7 +77,7 @@ router.post('/webhook/:pipelineId', (req, res) => {
   let branch = null;
   let commit = null;
   let commitMessage = '';
-  let triggeredBy = 'push';
+  let triggeredBy = 'webhook';
 
   if (payload.ref) {
     branch = payload.ref.replace('refs/heads/', '');
@@ -191,7 +191,7 @@ router.post('/webhook', (req, res) => {
       branch: triggerBranch,
       commit: commit,
       commitMessage: commitMessage,
-      triggeredBy: 'push'
+      triggeredBy: 'webhook'
     });
 
     executor.execute(build, pipeline).catch(err => {

@@ -17,6 +17,13 @@ export interface Pipeline {
   status: string;
   enabled: boolean;
   keepBuilds?: number;
+  artifactPaths?: string[];
+  errorNotification?: {
+    provider: string;
+    credentialId?: string;
+    channel?: string;
+    message?: string;
+  };
   createdAt: string;
   updatedAt: string;
   lastBuildAt: string | null;

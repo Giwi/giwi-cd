@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef, AfterViewChecked, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewChecked, signal, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -93,7 +93,7 @@ import { Subscription } from 'rxjs';
               }
               <div class="mb-3">
                 <label class="text-muted small">Triggered By</label>
-                <div class="text-capitalize">{{ build()?.triggeredBy }}</div>
+                <div class="text-capitalize">{{ getTriggeredByLabel(build()?.triggeredBy) }}</div>
               </div>
               <hr>
               <div class="row text-center">
@@ -108,136 +108,95 @@ import { Subscription } from 'rxjs';
               </div>
             </div>
           </div>
+
+          <div class="card border-0 shadow-sm">
+            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">Build Artifacts</h5>
+              @if (artifacts().length > 0) {
+                <button class="btn btn-outline-danger btn-sm" (click)="downloadAllArtifacts()">
+                  <i class="bi bi-download me-1"></i> Download All
+                </button>
+              }
+            </div>
+            <div class="card-body p-0">
+              @if (loadingArtifacts()) {
+                <div class="text-center py-4">
+                  <div class="spinner-border spinner-border-sm text-primary"></div>
+                </div>
+              } @else if (artifacts().length === 0) {
+                <div class="text-center text-muted py-4">
+                  <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+                  No artifacts available
+                </div>
+              } @else {
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Name</th>
+                        <th>Size</th>
+                        <th>Modified</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (artifact of artifacts(); track artifact.name) {
+                        <tr>
+                          <td>
+                            <i class="bi bi-file-earmark me-2"></i>
+                            {{ artifact.name }}
+                          </td>
+                          <td>{{ formatFileSize(artifact.size) }}</td>
+                          <td>{{ formatDate(artifact.modifiedAt) }}</td>
+                          <td class="text-end">
+                            <button class="btn btn-outline-primary btn-sm" (click)="downloadArtifact(artifact)">
+                              <i class="bi bi-download"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+          </div>
         </div>
 
         <div class="col-lg-8">
-          <ul class="nav nav-tabs mb-3" role="tablist">
-            <li class="nav-item">
-              <button class="nav-link" [class.active]="activeTab() === 'logs'" (click)="activeTab.set('logs')">
-                <i class="bi bi-terminal me-1"></i> Logs
-              </button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" [class.active]="activeTab() === 'artifacts'" (click)="loadArtifacts()">
-                <i class="bi bi-box-seam me-1"></i> Artifacts
-                @if (artifacts().length > 0) {
-                  <span class="badge bg-secondary ms-1">{{ artifacts().length }}</span>
-                }
-              </button>
-            </li>
-          </ul>
-
-          @if (activeTab() === 'logs') {
-            <div class="card border-0 shadow-sm">
-              <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2">
-                  <h5 class="mb-0">Build Logs</h5>
-                  <span class="badge bg-secondary">{{ filteredLogs().length }}</span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="input-group input-group-sm">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" placeholder="Search logs..." 
-                           [value]="searchQuery()" (input)="onSearch($event)">
-                    @if (searchQuery()) {
-                      <button class="btn btn-outline-secondary" (click)="clearSearch()">
-                        <i class="bi bi-x"></i>
-                      </button>
-                    }
-                  </div>
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" [class.active]="!logFilter()" (click)="clearFilter()">
-                      All
-                    </button>
-                    <button class="btn btn-outline-danger" [class.active]="logFilter() === 'error'" (click)="filterLogs('error')">
-                      Errors
-                    </button>
-                    <button class="btn btn-outline-warning" [class.active]="logFilter() === 'warn'" (click)="filterLogs('warn')">
-                      Warnings
-                    </button>
-                  </div>
-                  <div class="form-check form-switch">
-                    <input type="checkbox" class="form-check-input" id="autoScroll" 
-                           [checked]="autoScroll()" (change)="toggleAutoScroll()">
-                    <label class="form-check-label small" for="autoScroll">Auto-scroll</label>
-                  </div>
-                </div>
+          <div class="card border-0 shadow-sm">
+            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0">Build Logs</h5>
+                <span class="badge bg-secondary">{{ (build()?.logs || []).length }}</span>
               </div>
-              <div class="card-body p-0">
-                <div class="log-terminal" #logContainer>
-                  @for (log of filteredLogs(); track $index; let i = $index) {
-                    <div class="log-line log-{{ log.level }}" [class.highlighted]="isHighlighted(log)">
-                      <span class="log-line-number">{{ i + 1 }}</span>
-                      <span class="log-timestamp">{{ formatTime(log.timestamp) }}</span>
-                      <span class="log-level badge-{{ log.level }}">{{ log.level }}</span>
-                      <span class="log-message">{{ log.message }}</span>
-                    </div>
-                  }
-                  @if (filteredLogs().length === 0) {
-                    <div class="text-center text-muted py-4">
-                      <i class="bi bi-terminal fs-1 d-block mb-2"></i>
-                      No logs available
-                    </div>
-                  }
+              <div class="d-flex align-items-center gap-2">
+                <div class="form-check form-switch">
+                  <input type="checkbox" class="form-check-input" id="autoScroll" 
+                         [checked]="autoScroll()" (change)="autoScroll.set(!autoScroll())">
+                  <label class="form-check-label small" for="autoScroll">Auto-scroll</label>
                 </div>
               </div>
             </div>
-          }
-
-          @if (activeTab() === 'artifacts') {
-            <div class="card border-0 shadow-sm">
-              <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Build Artifacts</h5>
-                @if (artifacts().length > 0) {
-                  <button class="btn btn-outline-danger btn-sm" (click)="downloadAllArtifacts()">
-                    <i class="bi bi-download me-1"></i> Download All
-                  </button>
-                }
-              </div>
-              <div class="card-body p-0">
-                @if (loadingArtifacts()) {
-                  <div class="text-center py-4">
-                    <div class="spinner-border spinner-border-sm text-primary"></div>
+            <div class="card-body p-0">
+              <div class="log-terminal" #logContainer>
+                @for (log of build()?.logs || []; track $index; let i = $index) {
+                  <div class="log-line log-{{ log.level }}">
+                    <span class="log-line-number">{{ i + 1 }}</span>
+                    <span class="log-timestamp">{{ formatTime(log.timestamp) }}</span>
+                    <span class="log-level badge-{{ log.level }}">{{ log.level }}</span>
+                    <span class="log-message">{{ log.message }}</span>
                   </div>
-                } @else if (artifacts().length === 0) {
+                }
+                @if ((build()?.logs || []).length === 0) {
                   <div class="text-center text-muted py-4">
-                    <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
-                    No artifacts available
-                  </div>
-                } @else {
-                  <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Name</th>
-                          <th>Size</th>
-                          <th>Modified</th>
-                          <th class="text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (artifact of artifacts(); track artifact.name) {
-                          <tr>
-                            <td>
-                              <i class="bi bi-file-earmark me-2"></i>
-                              {{ artifact.name }}
-                            </td>
-                            <td>{{ formatFileSize(artifact.size) }}</td>
-                            <td>{{ formatDate(artifact.modifiedAt) }}</td>
-                            <td class="text-end">
-                              <button class="btn btn-outline-primary btn-sm" (click)="downloadArtifact(artifact)">
-                                <i class="bi bi-download"></i>
-                              </button>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
+                    <i class="bi bi-terminal fs-1 d-block mb-2"></i>
+                    No logs available
                   </div>
                 }
               </div>
             </div>
-          }
+          </div>
         </div>
       </div>
     }
@@ -248,11 +207,7 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   
   build = signal<Build | null>(null);
   loading = signal(true);
-  filteredLogs = signal<BuildLog[]>([]);
-  logFilter = signal<string | null>(null);
-  searchQuery = signal<string>('');
   autoScroll = signal(true);
-  activeTab = signal<'logs' | 'artifacts'>('logs');
   artifacts = signal<Artifact[]>([]);
   loadingArtifacts = signal(false);
   private shouldScroll = true;
@@ -275,7 +230,7 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   ngAfterViewChecked(): void {
-    if (this.shouldScroll && this.logContainer && this.activeTab() === 'logs' && this.autoScroll()) {
+    if (this.shouldScroll && this.logContainer && this.autoScroll()) {
       const el = this.logContainer.nativeElement;
       el.scrollTop = el.scrollHeight;
       this.shouldScroll = false;
@@ -293,7 +248,7 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
       next: (res) => {
         if (res.success) {
           this.build.set(res.data);
-          this.applyFilter();
+          this.loadArtifacts();
         }
         this.loading.set(false);
       },
@@ -302,7 +257,6 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   loadArtifacts(): void {
-    if (!this.build()) return;
     this.loadingArtifacts.set(true);
     const pipelineId = (this.build() as any)?.pipelineId;
     const buildId = this.build()?.id;
@@ -378,52 +332,6 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
     });
   }
 
-  filterLogs(level: string): void {
-    this.logFilter.set(this.logFilter() === level ? null : level);
-    this.applyFilter();
-  }
-
-  clearFilter(): void {
-    this.logFilter.set(null);
-    this.applyFilter();
-  }
-
-  onSearch(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchQuery.set(value);
-    this.applyFilter();
-  }
-
-  clearSearch(): void {
-    this.searchQuery.set('');
-    this.applyFilter();
-  }
-
-  toggleAutoScroll(): void {
-    this.autoScroll.update(v => !v);
-  }
-
-  isHighlighted(log: BuildLog): boolean {
-    const query = this.searchQuery().toLowerCase();
-    if (!query) return false;
-    return log.message.toLowerCase().includes(query);
-  }
-
-  private applyFilter(): void {
-    let logs = this.build()?.logs || [];
-    
-    if (this.logFilter()) {
-      logs = logs.filter(l => l.level === this.logFilter());
-    }
-    
-    const query = this.searchQuery().toLowerCase();
-    if (query) {
-      logs = logs.filter(l => l.message.toLowerCase().includes(query));
-    }
-    
-    this.filteredLogs.set(logs);
-  }
-
   getStageIcon(status?: string): string {
     const icons: Record<string, string> = {
       running: 'arrow-repeat spin',
@@ -439,6 +347,13 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
     return status === 'success';
   }
 
+  getTriggeredByLabel(triggeredBy?: string): string {
+    if (!triggeredBy) return 'Unknown';
+    if (triggeredBy === 'webhook') return 'Webhook';
+    if (triggeredBy === 'polling') return 'Polling';
+    return triggeredBy;
+  }
+
   subscribeToLogs(): void {
     this.wsSub = this.ws.messages$.subscribe((msg: WebSocketMessage) => {
       const msgType = msg['type'] as string;
@@ -450,7 +365,6 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
         if (currentBuild) {
           const logs = [...(currentBuild.logs || []), log];
           this.build.set({ ...currentBuild, logs });
-          this.applyFilter();
           this.shouldScroll = true;
         }
       } else if (msgType === 'build:complete' || msgType === 'build:cancelled' || msgType === 'build:stage') {

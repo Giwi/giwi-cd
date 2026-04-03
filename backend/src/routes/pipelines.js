@@ -9,6 +9,20 @@ const { asyncHandler } = require('../middleware/asyncHandler');
 const { createPagination, paginate } = require('../middleware/pagination');
 const { sanitizePipeline } = require('../utils/sanitize');
 
+const validateRepoUrl = (value) => {
+  if (!value || typeof value !== 'string') return true;
+  const trimmed = value.trim();
+  // Accept standard URLs (http/https/ftp)
+  if (/^https?:\/\//i.test(trimmed)) return true;
+  // Accept git protocol
+  if (/^git:\/\//i.test(trimmed)) return true;
+  // Accept ssh protocol
+  if (/^ssh:\/\//i.test(trimmed)) return true;
+  // Accept SCP-style git URLs (git@host:path)
+  if (/^git@[\w.-]+:[\w./-]+\.?[\w-]*$/.test(trimmed)) return true;
+  return false;
+};
+
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -50,25 +64,30 @@ router.post('/', [
   body('name').notEmpty().trim().withMessage('Pipeline name is required')
     .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
   body('branch').optional().trim().isLength({ max: 100 }).withMessage('Branch must be less than 100 characters'),
-  body('repositoryUrl').optional().trim().isURL().withMessage('Invalid repository URL'),
+  body('repositoryUrl').optional().trim().custom(validateRepoUrl).withMessage('Invalid repository URL. Accepted formats: http(s)://, git://, ssh://, git@host:path'),
   body('credentialId').optional().isUUID().withMessage('Invalid credential ID'),
   body('stages').optional().isArray().withMessage('Stages must be an array'),
-  body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100')
+  body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100'),
+  body('artifactPaths').optional().isArray().withMessage('artifactPaths must be an array'),
+  body('artifactPaths.*').optional().isString().trim().isLength({ max: 500 }).withMessage('Artifact path must be a string under 500 chars'),
+  body('errorNotification').optional().isObject().withMessage('errorNotification must be an object'),
+  body('errorNotification.provider').optional().isIn(['telegram', 'slack', 'teams', 'mail']).withMessage('Invalid notification provider')
 ], validate, (req, res) => {
   const sanitized = sanitizePipeline(req.body);
-  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds } = sanitized;
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds, artifactPaths, errorNotification } = sanitized;
 
-  const pipeline = Pipeline.create({ name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds });
+  const pipeline = Pipeline.create({ name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds, artifactPaths, errorNotification });
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline created successfully' });
 });
 
 // POST /api/pipelines/import - Import pipeline
 router.post('/import', [
   body('name').notEmpty().trim().withMessage('Pipeline name is required')
-    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters')
+    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
+  body('repositoryUrl').optional().trim().custom(validateRepoUrl).withMessage('Invalid repository URL. Accepted formats: http(s)://, git://, ssh://, git@host:path')
 ], validate, (req, res) => {
   const sanitized = sanitizePipeline(req.body);
-  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment } = sanitized;
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, artifactPaths } = sanitized;
 
   const pipeline = Pipeline.create({ 
     name, 
@@ -78,7 +97,8 @@ router.post('/import', [
     branch: branch || 'main', 
     stages: stages || [], 
     triggers: triggers || [], 
-    environment: environment || [] 
+    environment: environment || [],
+    artifactPaths: artifactPaths || []
   });
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline imported successfully' });
 });
@@ -89,10 +109,14 @@ router.put('/:id', [
   body('name').optional().trim().notEmpty().withMessage('Pipeline name cannot be empty')
     .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
   body('branch').optional().trim().isLength({ max: 100 }).withMessage('Branch must be less than 100 characters'),
-  body('repositoryUrl').optional().trim().isURL().withMessage('Invalid repository URL'),
+  body('repositoryUrl').optional().trim().custom(validateRepoUrl).withMessage('Invalid repository URL. Accepted formats: http(s)://, git://, ssh://, git@host:path'),
   body('credentialId').optional().isUUID().withMessage('Invalid credential ID'),
   body('stages').optional().isArray().withMessage('Stages must be an array'),
-  body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100')
+  body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100'),
+  body('artifactPaths').optional().isArray().withMessage('artifactPaths must be an array'),
+  body('artifactPaths.*').optional().isString().trim().isLength({ max: 500 }).withMessage('Artifact path must be a string under 500 chars'),
+  body('errorNotification').optional().isObject().withMessage('errorNotification must be an object'),
+  body('errorNotification.provider').optional().isIn(['telegram', 'slack', 'teams', 'mail']).withMessage('Invalid notification provider')
 ], validate, (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
@@ -145,7 +169,7 @@ router.post('/:id/trigger', triggerLimiter, [
     branch: req.body.branch || pipeline.branch,
     commit: req.body.commit || null,
     commitMessage: req.body.commitMessage || 'Manual trigger',
-    triggeredBy: req.body.triggeredBy || 'manual',
+    triggeredBy: req.user?.username || req.body.triggeredBy || 'manual',
     stages: (pipeline.stages || []).map(s => ({ ...s, status: 'pending' }))
   });
 

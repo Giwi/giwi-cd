@@ -105,7 +105,7 @@ class PollingService {
         branch: branch,
         commit: currentCommit,
         commitMessage: 'Commit detected by polling',
-        triggeredBy: 'push'
+        triggeredBy: 'polling'
       });
 
       Pipeline.updateLastCommit(id, currentCommit);

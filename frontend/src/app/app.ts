@@ -75,12 +75,6 @@ import { AuthService } from './services/auth.service';
                   General
                 }
               </a>
-              <a class="nav-item" routerLink="/settings/logs" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Logs' : ''">
-                <i class="bi bi-journal-text"></i>
-                @if (!sidebarCollapsed()) {
-                  Logs
-                }
-              </a>
               <a class="nav-item" routerLink="/settings/users" routerLinkActive="active" [title]="sidebarCollapsed() ? 'Users' : ''">
                 <i class="bi bi-people"></i>
                 @if (!sidebarCollapsed()) {
@@ -368,7 +362,6 @@ export class App {
 
     if (this.authService.isAdmin()) {
       settingsChildren.push({ label: 'General', route: '/settings', icon: 'bi-gear', exact: true });
-      settingsChildren.push({ label: 'Logs', route: '/settings/logs', icon: 'bi-journal-text' });
       settingsChildren.push({ label: 'Users', route: '/settings/users', icon: 'bi-people' });
     }
     settingsChildren.push({ label: 'Credentials', route: '/settings/credentials', icon: 'bi-key' });

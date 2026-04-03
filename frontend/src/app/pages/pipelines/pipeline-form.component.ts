@@ -259,6 +259,29 @@ interface NotificationStep {
               </div>
             }
           </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <i class="bi bi-box-seam"></i> Artifacts
+            </div>
+            <div class="mb-3">
+              <label class="form-label small">Artifact paths</label>
+              <div formArrayName="artifactPaths">
+                @for (pathCtrl of artifactPaths.controls; track $index; let i = $index) {
+                  <div class="input-group input-group-sm mb-2">
+                    <input type="text" class="form-control" [formControlName]="i" placeholder="dist/**, *.log, build/output/**">
+                    <button type="button" class="btn btn-outline-danger" (click)="removeArtifactPath(i)">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="addArtifactPath()">
+                <i class="bi bi-plus me-1"></i> Add Path
+              </button>
+              <div class="form-text">Glob patterns for artifacts to collect at build end</div>
+            </div>
+          </div>
         </div>
 
         <div class="col-lg-4">
@@ -291,6 +314,48 @@ interface NotificationStep {
                 <input type="checkbox" class="form-check-input" formControlName="push" id="push">
                 <label class="form-check-label" for="push">On push</label>
               </div>
+            </ng-container>
+
+            <ng-container formGroupName="errorNotification">
+              <div class="form-section-title mt-4">
+                <i class="bi bi-exclamation-triangle"></i> Error Notification
+              </div>
+              <div class="form-check form-switch mb-3">
+                <input type="checkbox" class="form-check-input" formControlName="enabled" id="errorNotifEnabled">
+                <label class="form-check-label" for="errorNotifEnabled">Notify on build error</label>
+              </div>
+              @if (isErrorNotifEnabled()) {
+                <div class="mb-3">
+                  <label class="form-label small">Provider</label>
+                  <select class="form-select form-select-sm" formControlName="provider">
+                    <option value="">Select provider</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="slack">Slack</option>
+                    <option value="teams">Teams</option>
+                    <option value="mail">Mail</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small">Credential</label>
+                  <select class="form-select form-select-sm" formControlName="credentialId">
+                    <option value="">Select credential</option>
+                    @for (cred of getNotificationCredentials(); track cred.id) {
+                      <option [value]="cred.id">{{ cred.name }}</option>
+                    }
+                  </select>
+                </div>
+                @if (isSlackOrTeamsErrorNotif()) {
+                  <div class="mb-3">
+                    <label class="form-label small">Channel</label>
+                    <input type="text" class="form-control form-control-sm" formControlName="channel" placeholder="#builds">
+                  </div>
+                }
+                <div class="mb-3">
+                  <label class="form-label small">Message</label>
+                  <textarea class="form-control form-control-sm" formControlName="message" rows="3" [attr.placeholder]="errorNotifPlaceholder"></textarea>
+                  <div class="form-text small">Variables: {{ '{{PIPELINE_NAME}}' }}, {{ '{{BRANCH}}' }}, {{ '{{BUILD_NUMBER}}' }}, {{ '{{COMMIT}}' }}, {{ '{{DURATION}}' }}</div>
+                </div>
+              }
             </ng-container>
 
             @if (isEdit() && pipeline()) {
@@ -390,6 +455,35 @@ export class PipelineFormComponent implements OnInit {
     return this.form.get('stages') as FormArray;
   }
 
+  get artifactPaths(): FormArray {
+    return this.form.get('artifactPaths') as FormArray;
+  }
+
+  getErrorNotifProvider(): string {
+    return this.form.get('errorNotification.provider')?.value || '';
+  }
+
+  isErrorNotifEnabled(): boolean {
+    return !!this.form.get('errorNotification.enabled')?.value;
+  }
+
+  isSlackOrTeamsErrorNotif(): boolean {
+    const provider = this.getErrorNotifProvider();
+    return provider === 'slack' || provider === 'teams';
+  }
+
+  get errorNotifPlaceholder(): string {
+    return '❌ Build #{{BUILD_NUMBER}} failed on {{PIPELINE_NAME}} ({{BRANCH}})';
+  }
+
+  addArtifactPath(): void {
+    this.artifactPaths.push(this.fb.control(''));
+  }
+
+  removeArtifactPath(index: number): void {
+    this.artifactPaths.removeAt(index);
+  }
+
   initForm(): void {
     this.form = this.fb.group({
       name: ['', Validators.required],
@@ -399,6 +493,14 @@ export class PipelineFormComponent implements OnInit {
       branch: ['main', Validators.required],
       enabled: [true],
       keepBuilds: [10],
+      artifactPaths: this.fb.array([]),
+      errorNotification: this.fb.group({
+        enabled: [false],
+        provider: [null],
+        credentialId: [null],
+        channel: [null],
+        message: ['❌ Build #{{BUILD_NUMBER}} failed on {{PIPELINE_NAME}} ({{BRANCH}})']
+      }),
       triggers: this.fb.group({
         manual: [true],
         push: [false],
@@ -432,7 +534,19 @@ export class PipelineFormComponent implements OnInit {
         manual: pipeline.triggers?.manual ?? true,
         push: pipeline.triggers?.push ?? false,
         schedule: pipeline.triggers?.schedule ?? null
+      },
+      errorNotification: {
+        enabled: !!pipeline.errorNotification?.provider,
+        provider: pipeline.errorNotification?.provider || null,
+        credentialId: pipeline.errorNotification?.credentialId || null,
+        channel: pipeline.errorNotification?.channel || '',
+        message: pipeline.errorNotification?.message || '❌ Build #{{BUILD_NUMBER}} failed on {{PIPELINE_NAME}} ({{BRANCH}})'
       }
+    });
+
+    this.artifactPaths.clear();
+    (pipeline.artifactPaths || []).forEach((p: string) => {
+      this.artifactPaths.push(this.fb.control(p));
     });
 
     this.notificationSteps.set(new Map());
@@ -845,11 +959,21 @@ export class PipelineFormComponent implements OnInit {
       branch: rawValue.branch || 'main',
       enabled: rawValue.enabled ?? true,
       triggers: rawValue.triggers,
-      stages: stagesData
+      stages: stagesData,
+      artifactPaths: (rawValue.artifactPaths || []).filter((p: string) => p.trim().length > 0)
     };
 
     if (rawValue.credentialId) {
       data.credentialId = rawValue.credentialId;
+    }
+
+    if (rawValue.errorNotification?.enabled) {
+      data.errorNotification = {
+        provider: rawValue.errorNotification.provider,
+        credentialId: rawValue.errorNotification.credentialId || undefined,
+        channel: rawValue.errorNotification.channel || undefined,
+        message: rawValue.errorNotification.message || ''
+      };
     }
 
     const id = this.route.snapshot.paramMap.get('id');

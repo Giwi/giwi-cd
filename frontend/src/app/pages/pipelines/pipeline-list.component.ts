@@ -11,21 +11,24 @@ import { Pipeline, ApiResponse } from '../../models/types';
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Pipelines</h1>
-        <p class="page-subtitle">Manage your CI/CD pipelines</p>
-      </div>
-      <div class="d-flex gap-2">
-        <label class="btn btn-outline-secondary mb-0">
-          <i class="bi bi-upload me-1"></i> Import
-          <input type="file" accept=".json" (change)="importPipeline($event)" class="d-none">
-        </label>
-        <a routerLink="/pipelines/new" class="btn btn-primary">
-          <i class="bi bi-plus-lg me-1"></i> New Pipeline
-        </a>
-      </div>
-    </div>
+     <div class="page-header">
+       <div>
+         <h1 class="page-title">Pipelines</h1>
+         <p class="page-subtitle">Manage your CI/CD pipelines</p>
+       </div>
+       <div class="d-flex gap-2 align-items-center flex-wrap">
+         <label class="btn btn-outline-secondary mb-2 mb-md-0">
+           <i class="bi bi-upload me-1"></i> Import
+           <input type="file" accept=".json" (change)="importPipeline($event)" class="d-none">
+         </label>
+         <a routerLink="/pipelines/new" class="btn btn-primary mb-2 mb-md-0">
+           <i class="bi bi-plus-lg me-1"></i> New Pipeline
+         </a>
+         <button class="btn btn-outline-secondary btn-sm mb-2 mb-md-0" (click)="refreshPipelines()">
+           <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+         </button>
+       </div>
+     </div>
 
     @if (loading()) {
       <div class="text-center py-5">
@@ -137,6 +140,11 @@ export class PipelineListComponent implements OnInit {
     private toast: ToastService,
     private router: Router
   ) {}
+
+  refreshPipelines(): void {
+    this.loadPipelines();
+    this.toast.info('Refreshing pipelines...');
+  }
 
   ngOnInit(): void {
     this.loadPipelines();

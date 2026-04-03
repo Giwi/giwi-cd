@@ -243,6 +243,20 @@ class GitService {
     });
   }
 
+  async getLastCommitMessage(workDir) {
+    if (!workDir || !fs.existsSync(path.join(workDir, '.git'))) return null;
+
+    return new Promise((resolve) => {
+      exec(`git -C "${workDir}" log -1 --format=%s`, { timeout: 10000 }, (error, stdout) => {
+        if (error) {
+          resolve(null);
+        } else {
+          resolve(stdout.trim());
+        }
+      });
+    });
+  }
+
   cleanup(ageMs = 24 * 60 * 60 * 1000) {
     try {
       const files = fs.readdirSync(this.workspaceDir);

@@ -21,7 +21,9 @@ class Pipeline {
       lastBuildStatus: null,
       lastCommit: null,
       pollingInterval: 60,
-      keepBuilds: data.keepBuilds || 10
+      keepBuilds: data.keepBuilds || 10,
+      artifactPaths: data.artifactPaths || [],
+      errorNotification: data.errorNotification || null
     };
     db.get('pipelines').push(pipeline).write();
     return pipeline;

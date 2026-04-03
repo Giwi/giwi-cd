@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
+import { ToastService } from '../../services/toast.service';
 import { DashboardData, Build, ApiResponse } from '../../models/types';
 
 @Component({
@@ -10,18 +11,21 @@ import { DashboardData, Build, ApiResponse } from '../../models/types';
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">Dashboard</h1>
-        <p class="page-subtitle">CI/CD Pipeline Overview</p>
-      </div>
-      <div class="d-flex gap-2">
-        <span class="badge bg-{{ healthStatus() === 'healthy' ? 'success' : 'danger' }}">
-          <i class="bi bi-{{ healthStatus() === 'healthy' ? 'check-circle' : 'exclamation-circle' }}"></i>
-          {{ healthStatus() }}
-        </span>
-      </div>
-    </div>
+     <div class="page-header">
+       <div>
+         <h1 class="page-title">Dashboard</h1>
+         <p class="page-subtitle">CI/CD Pipeline Overview</p>
+       </div>
+       <div class="d-flex gap-2 align-items-center">
+         <span class="badge bg-{{ healthStatus() === 'healthy' ? 'success' : 'danger' }}">
+           <i class="bi bi-{{ healthStatus() === 'healthy' ? 'check-circle' : 'exclamation-circle' }}"></i>
+           {{ healthStatus() }}
+         </span>
+         <button class="btn btn-outline-secondary btn-sm" (click)="refreshData()">
+           <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+         </button>
+       </div>
+     </div>
 
     @if (loading()) {
       <div class="text-center py-5">
@@ -168,7 +172,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private api: ApiService,
-    private ws: WebSocketService
+    private ws: WebSocketService,
+    private toast: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -193,6 +198,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.healthStatus.set('unhealthy');
       }
     });
+  }
+
+  refreshData(): void {
+    this.loadData();
+    this.toast.info('Refreshing dashboard data...');
   }
 
   formatDuration(seconds: number | null): string {
