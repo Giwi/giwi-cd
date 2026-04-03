@@ -77,6 +77,8 @@ class CredentialCache {
 
 const credentialCache = new CredentialCache(300000);
 
-setInterval(() => credentialCache.cleanup(), 60000);
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(() => credentialCache.cleanup(), 60000);
+}
 
 module.exports = { credentialCache, CredentialCache };

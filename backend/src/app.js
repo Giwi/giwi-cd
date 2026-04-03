@@ -50,18 +50,41 @@ const buildRunner = new BuildRunner(wsManager);
 app.set('buildRunner', buildRunner);
 app.set('buildExecutor', buildRunner.executor);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/health', healthRoutes);
+const apiRouter = express.Router();
+app.use('/api', apiRouter);
 
-app.use('/api/dashboard', optionalAuth, dashboardRoutes);
-app.use('/api/webhooks', webhookRoutes);
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/health', healthRoutes);
+apiRouter.use('/dashboard', optionalAuth, dashboardRoutes);
+apiRouter.use('/webhooks', webhookRoutes);
+apiRouter.use('/admin', authenticate, adminRoutes);
+apiRouter.use('/pipelines', authenticate, pipelineRoutes);
+apiRouter.use('/builds', authenticate, buildRoutes);
+apiRouter.use('/credentials', authenticate, credentialRoutes);
+apiRouter.use('/polling', authenticate, pollingRoutes);
+apiRouter.use('/artifacts', authenticate, artifactRoutes);
 
-app.use('/api/admin', authenticate, adminRoutes);
-app.use('/api/pipelines', authenticate, pipelineRoutes);
-app.use('/api/builds', authenticate, buildRoutes);
-app.use('/api/credentials', authenticate, credentialRoutes);
-app.use('/api/polling', authenticate, pollingRoutes);
-app.use('/api/artifacts', authenticate, artifactRoutes);
+apiRouter.get('/version', (req, res) => {
+  res.json({ version: '1.0.0', apiVersion: 'v1', deprecated: false });
+});
+
+const v1Router = express.Router();
+v1Router.use('/auth', authRoutes);
+v1Router.use('/health', healthRoutes);
+v1Router.use('/dashboard', optionalAuth, dashboardRoutes);
+v1Router.use('/webhooks', webhookRoutes);
+v1Router.use('/admin', authenticate, adminRoutes);
+v1Router.use('/pipelines', authenticate, pipelineRoutes);
+v1Router.use('/builds', authenticate, buildRoutes);
+v1Router.use('/credentials', authenticate, credentialRoutes);
+v1Router.use('/polling', authenticate, pollingRoutes);
+v1Router.use('/artifacts', authenticate, artifactRoutes);
+
+v1Router.get('/version', (req, res) => {
+  res.json({ version: '1.0.0', apiVersion: 'v1', deprecated: false });
+});
+
+app.use('/api/v1', v1Router);
 
 app.get('*', (req, res, next) => {
   if (!req.path.startsWith('/api')) {

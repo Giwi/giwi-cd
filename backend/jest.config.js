@@ -9,5 +9,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   verbose: true,
   testTimeout: 10000,
-  setupFilesAfterEnv: ['./jest.setup.js']
+  setupFilesAfterEnv: ['./jest.setup.js'],
+  forceExit: true,
+  detectOpenHandles: false
 };
