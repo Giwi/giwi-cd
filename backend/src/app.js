@@ -11,6 +11,7 @@ const { authenticate, optionalAuth } = require('./middleware/auth');
 const { authLimiter, apiLimiter, triggerLimiter } = require('./middleware/rateLimit');
 const { csrfMiddleware } = require('./middleware/csrf');
 const { requestLogger } = require('./middleware/logger');
+const { register, metricsMiddleware, setBuildsRunning, setPipelinesTotal, setQueueSize } = require('./config/metrics');
 
 const dashboardRoutes = require('./routes/dashboard');
 const pipelineRoutes = require('./routes/pipelines');
@@ -85,6 +86,15 @@ v1Router.get('/version', (req, res) => {
 });
 
 app.use('/api/v1', v1Router);
+
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (ex) {
+    res.status(500).end(ex.message);
+  }
+});
 
 app.get('*', (req, res, next) => {
   if (!req.path.startsWith('/api')) {
