@@ -129,25 +129,47 @@ import { Subscription } from 'rxjs';
 
           @if (activeTab() === 'logs') {
             <div class="card border-0 shadow-sm">
-              <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Build Logs</h5>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" (click)="clearFilter()">
-                    All
-                  </button>
-                  <button class="btn btn-outline-danger" (click)="filterLogs('error')">
-                    Errors
-                  </button>
-                  <button class="btn btn-outline-warning" (click)="filterLogs('warn')">
-                    Warnings
-                  </button>
+              <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <h5 class="mb-0">Build Logs</h5>
+                  <span class="badge bg-secondary">{{ filteredLogs().length }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" placeholder="Search logs..." 
+                           [value]="searchQuery()" (input)="onSearch($event)">
+                    @if (searchQuery()) {
+                      <button class="btn btn-outline-secondary" (click)="clearSearch()">
+                        <i class="bi bi-x"></i>
+                      </button>
+                    }
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-secondary" [class.active]="!logFilter()" (click)="clearFilter()">
+                      All
+                    </button>
+                    <button class="btn btn-outline-danger" [class.active]="logFilter() === 'error'" (click)="filterLogs('error')">
+                      Errors
+                    </button>
+                    <button class="btn btn-outline-warning" [class.active]="logFilter() === 'warn'" (click)="filterLogs('warn')">
+                      Warnings
+                    </button>
+                  </div>
+                  <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="autoScroll" 
+                           [checked]="autoScroll()" (change)="toggleAutoScroll()">
+                    <label class="form-check-label small" for="autoScroll">Auto-scroll</label>
+                  </div>
                 </div>
               </div>
               <div class="card-body p-0">
                 <div class="log-terminal" #logContainer>
-                  @for (log of filteredLogs(); track $index) {
-                    <div class="log-line log-{{ log.level }}">
+                  @for (log of filteredLogs(); track $index; let i = $index) {
+                    <div class="log-line log-{{ log.level }}" [class.highlighted]="isHighlighted(log)">
+                      <span class="log-line-number">{{ i + 1 }}</span>
                       <span class="log-timestamp">{{ formatTime(log.timestamp) }}</span>
+                      <span class="log-level badge-{{ log.level }}">{{ log.level }}</span>
                       <span class="log-message">{{ log.message }}</span>
                     </div>
                   }
@@ -227,7 +249,9 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   build = signal<Build | null>(null);
   loading = signal(true);
   filteredLogs = signal<BuildLog[]>([]);
-  logFilter: string | null = null;
+  logFilter = signal<string | null>(null);
+  searchQuery = signal<string>('');
+  autoScroll = signal(true);
   activeTab = signal<'logs' | 'artifacts'>('logs');
   artifacts = signal<Artifact[]>([]);
   loadingArtifacts = signal(false);
@@ -251,7 +275,7 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   ngAfterViewChecked(): void {
-    if (this.shouldScroll && this.logContainer && this.activeTab() === 'logs') {
+    if (this.shouldScroll && this.logContainer && this.activeTab() === 'logs' && this.autoScroll()) {
       const el = this.logContainer.nativeElement;
       el.scrollTop = el.scrollHeight;
       this.shouldScroll = false;
@@ -355,22 +379,49 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   filterLogs(level: string): void {
-    this.logFilter = this.logFilter === level ? null : level;
+    this.logFilter.set(this.logFilter() === level ? null : level);
     this.applyFilter();
   }
 
   clearFilter(): void {
-    this.logFilter = null;
+    this.logFilter.set(null);
     this.applyFilter();
   }
 
+  onSearch(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(value);
+    this.applyFilter();
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.applyFilter();
+  }
+
+  toggleAutoScroll(): void {
+    this.autoScroll.update(v => !v);
+  }
+
+  isHighlighted(log: BuildLog): boolean {
+    const query = this.searchQuery().toLowerCase();
+    if (!query) return false;
+    return log.message.toLowerCase().includes(query);
+  }
+
   private applyFilter(): void {
-    const logs = this.build()?.logs || [];
-    if (this.logFilter) {
-      this.filteredLogs.set(logs.filter(l => l.level === this.logFilter));
-    } else {
-      this.filteredLogs.set(logs);
+    let logs = this.build()?.logs || [];
+    
+    if (this.logFilter()) {
+      logs = logs.filter(l => l.level === this.logFilter());
     }
+    
+    const query = this.searchQuery().toLowerCase();
+    if (query) {
+      logs = logs.filter(l => l.message.toLowerCase().includes(query));
+    }
+    
+    this.filteredLogs.set(logs);
   }
 
   getStageIcon(status?: string): string {

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
-import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types';
+import { DashboardData, Build, ApiResponse } from '../../models/types';
 
 @Component({
   selector: 'app-dashboard',
@@ -148,35 +148,6 @@ import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types'
               }
             </div>
           </div>
-
-          <div class="card border-0 shadow-sm">
-            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Pipelines</h5>
-              <a routerLink="/pipelines" class="btn btn-sm btn-outline-primary">
-                Manage <i class="bi bi-arrow-right"></i>
-              </a>
-            </div>
-            <div class="card-body p-0">
-              @for (pipeline of pipelines(); track pipeline.id) {
-                <div class="p-3 border-bottom" [routerLink]="['/pipelines', pipeline.id]" style="cursor: pointer;">
-                  <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                      <div class="fw-semibold">{{ pipeline.name }}</div>
-                      <small class="text-muted">{{ pipeline.branch }}</small>
-                    </div>
-                    <span class="badge bg-{{ pipeline.enabled ? 'success' : 'secondary' }}">
-                      {{ pipeline.enabled ? 'Active' : 'Inactive' }}
-                    </span>
-                  </div>
-                </div>
-              } @empty {
-                <div class="p-4 text-center text-muted">
-                  <i class="bi bi-diagram-3 fs-1 d-block mb-2"></i>
-                  No pipelines configured
-                </div>
-              }
-            </div>
-          </div>
         </div>
       </div>
     }
@@ -184,7 +155,6 @@ import { DashboardData, Build, Pipeline, ApiResponse } from '../../models/types'
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   data = signal<DashboardData | null>(null);
-  pipelines = signal<Pipeline[]>([]);
   loading = signal(true);
   healthStatus = signal('checking');
 
@@ -222,10 +192,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.healthStatus.set('unhealthy');
       }
-    });
-
-    this.api.get<ApiResponse<Pipeline[]>>('/pipelines').subscribe({
-      next: (res) => this.pipelines.set(res.data || [])
     });
   }
 

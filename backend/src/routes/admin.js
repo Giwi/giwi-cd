@@ -4,6 +4,7 @@ const { body, param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { db } = require('../config/database');
 const { authenticate, requireRole, generateToken } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -13,8 +14,73 @@ const validate = (req, res, next) => {
   next();
 };
 
+let logBuffer = [];
+
+const originalLogger = {
+  info: logger.info.bind(logger),
+  warn: logger.warn.bind(logger),
+  error: logger.error.bind(logger),
+  debug: logger.debug.bind(logger)
+};
+
+logger.info = (msg, ...args) => {
+  originalLogger.info(msg, ...args);
+  logBuffer.push({ timestamp: new Date().toISOString(), level: 'info', message: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+  if (logBuffer.length > 1000) logBuffer = logBuffer.slice(-500);
+};
+
+logger.warn = (msg, ...args) => {
+  originalLogger.warn(msg, ...args);
+  logBuffer.push({ timestamp: new Date().toISOString(), level: 'warn', message: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+  if (logBuffer.length > 1000) logBuffer = logBuffer.slice(-500);
+};
+
+logger.error = (msg, ...args) => {
+  originalLogger.error(msg, ...args);
+  logBuffer.push({ timestamp: new Date().toISOString(), level: 'error', message: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+  if (logBuffer.length > 1000) logBuffer = logBuffer.slice(-500);
+};
+
+logger.debug = (msg, ...args) => {
+  originalLogger.debug(msg, ...args);
+  logBuffer.push({ timestamp: new Date().toISOString(), level: 'debug', message: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+  if (logBuffer.length > 1000) logBuffer = logBuffer.slice(-500);
+};
+
 router.use(authenticate);
 router.use(requireRole('admin'));
+
+router.get('/logs', (req, res) => {
+  try {
+    const level = req.query.level;
+    const search = req.query.search?.toLowerCase();
+    let logs = [...logBuffer];
+    
+    if (level) {
+      logs = logs.filter(l => l.level === level);
+    }
+    
+    if (search) {
+      logs = logs.filter(l => l.message.toLowerCase().includes(search));
+    }
+    
+    const limit = parseInt(req.query.limit) || 200;
+    logs = logs.slice(-limit);
+    
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch logs' });
+  }
+});
+
+router.delete('/logs', (req, res) => {
+  try {
+    logBuffer = [];
+    res.json({ success: true, message: 'Logs cleared' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to clear logs' });
+  }
+});
 
 router.get('/users', (req, res) => {
   try {

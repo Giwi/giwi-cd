@@ -88,6 +88,11 @@ export const routes: Routes = [
     canActivate: [adminGuard]
   },
   {
+    path: 'settings/logs',
+    loadComponent: () => import('./pages/settings/admin/logs.component').then(m => m.LogsComponent),
+    canActivate: [adminGuard]
+  },
+  {
     path: '',
     loadComponent: () => import('./pages/landing.component').then(m => m.LandingComponent)
   },
