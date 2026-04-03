@@ -1,10 +1,23 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const db = require('../config/database');
 const { authenticate, generateToken } = require('../middleware/auth');
 
-router.post('/register', async (req, res) => {
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  next();
+};
+
+router.post('/register', [
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('username').optional().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters')
+], validate, async (req, res) => {
   try {
     const settings = db.get('settings').value();
     
@@ -13,20 +26,6 @@ router.post('/register', async (req, res) => {
     }
 
     const { email, password, username } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-
     const user = await User.create({ email, password, username });
     const token = generateToken(user.id);
 
@@ -43,13 +42,12 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', [
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').notEmpty().withMessage('Password is required')
+], validate, async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
 
     const user = User.findByEmail(email);
     if (!user) {
@@ -82,7 +80,10 @@ router.post('/logout', (req, res) => {
   res.json({ message: 'Logout successful' });
 });
 
-router.put('/me', authenticate, async (req, res) => {
+router.put('/me', authenticate, [
+  body('username').optional().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
+  body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], validate, async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.update(req.userId, { username, password });
@@ -92,17 +93,12 @@ router.put('/me', authenticate, async (req, res) => {
   }
 });
 
-router.put('/password', authenticate, async (req, res) => {
+router.put('/password', authenticate, [
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
+], validate, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current and new password are required' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
-    }
 
     const user = User.findByEmail(req.user.email);
     const isValidPassword = await User.verifyPassword(currentPassword, user.password);

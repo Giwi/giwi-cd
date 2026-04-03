@@ -46,14 +46,20 @@ User Action
 
 ```
 /api
+├── /health
+│   ├── GET    /               - Full health check
+│   ├── GET    /live           - Liveness probe
+│   └── GET    /ready          - Readiness probe
+│
 ├── /auth
 │   ├── POST   /login          - User login
 │   ├── POST   /register       - User registration
 │   ├── GET    /me             - Get current user
+│   ├── PUT    /me             - Update profile
 │   └── PUT    /password       - Change password
 │
 ├── /pipelines
-│   ├── GET    /               - List all pipelines
+│   ├── GET    /               - List pipelines (paginated)
 │   ├── GET    /:id            - Get pipeline details
 │   ├── POST   /               - Create pipeline
 │   ├── POST   /import         - Import pipeline from JSON
@@ -61,10 +67,11 @@ User Action
 │   ├── DELETE /:id            - Delete pipeline
 │   ├── POST  /:id/trigger    - Trigger build
 │   ├── POST  /:id/toggle     - Enable/disable pipeline
-│   └── GET   /:id/builds     - Get pipeline builds
+│   └── GET   /:id/builds     - Get pipeline builds (paginated)
 │
 ├── /builds
-│   ├── GET    /               - List all builds
+│   ├── GET    /               - List builds (paginated)
+│   ├── GET    /stats          - Build statistics
 │   ├── GET    /:id            - Get build details
 │   ├── GET    /:id/logs       - Get build logs
 │   └── POST  /:id/cancel      - Cancel build
@@ -77,11 +84,11 @@ User Action
 │   ├── POST   /:id/test      - Test credential
 │   └── DELETE /:id            - Delete credential
 │
-├── /webhooks
-│   ├── GET    /webhook/:id    - Trigger webhook manually
-│   └── POST   /webhook/:id    - Push event webhook (GitHub/GitLab)
+├── /polling
+│   ├── POST   /check/:id      - Check pipeline for updates
+│   └── POST   /check-all      - Check all pipelines
 │
-├── /admin
+├── /admin (Admin only)
 │   ├── GET    /users          - List users
 │   ├── POST   /users          - Create user
 │   ├── PUT    /users/:id      - Update user
@@ -89,8 +96,9 @@ User Action
 │   ├── GET    /settings       - Get settings
 │   └── PUT    /settings      - Update settings
 │
-└── /notifications
-    └── GET    /defaults       - Get notification defaults
+└── /webhooks
+    ├── GET    /webhook/:id    - Trigger webhook manually
+    └── POST   /webhook/:id    - Push event webhook (GitHub/GitLab)
 ```
 
 ## Build Pipeline Execution
@@ -211,6 +219,33 @@ build:cancelled - Build cancelled
 
 ## Technology Stack
 
+```
+Frontend                    Backend
+───────                   ──────
+Angular 20                 Node.js 18+
+TypeScript                 Express.js
+Bootstrap 5                JSON DB (lowdb)
+Bootstrap Icons            JWT Auth
+SCSS                        WebSocket
+                            Git operations (child_process)
+
+Middleware:
+├── auth.js               - JWT authentication
+├── rateLimit.js          - Rate limiting
+├── csrf.js               - CSRF protection
+├── logger.js              - Request logging
+├── pagination.js          - API pagination
+├── asyncHandler.js        - Async error handling
+└── errorHandler.js        - Global error handling
+
+Services:
+├── BuildExecutor          - Build orchestration
+├── StageRunner            - Stage/step execution
+├── CommandExecutor        - Shell command execution
+├── GitService             - Git operations
+├── NotificationService    - Telegram, Slack, Teams, Email
+├── PollingService         - Git repository polling
+└── WebSocketManager       - Real-time communication
 ```
 Frontend                    Backend
 ────────                   ──────

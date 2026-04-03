@@ -1,6 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, validationResult } = require('express-validator');
 const Credential = require('../models/Credential');
+const { asyncHandler } = require('../middleware/asyncHandler');
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, error: errors.array()[0].msg });
+  }
+  next();
+};
+
+const VALID_CREDENTIAL_TYPES = ['username-password', 'token', 'ssh-key', 'telegram', 'slack', 'teams', 'mail'];
 
 // GET /api/credentials - List all credentials
 router.get('/', (req, res) => {
@@ -9,19 +21,26 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/credentials/:id - Get credential by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', [
+  param('id').isUUID().withMessage('Invalid credential ID')
+], validate, (req, res) => {
   const credential = Credential.findById(req.params.id);
   if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
   res.json({ success: true, data: credential });
 });
 
 // POST /api/credentials - Create credential
-router.post('/', (req, res) => {
+router.post('/', [
+  body('name').notEmpty().trim().withMessage('Credential name is required')
+    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
+  body('type').isIn(VALID_CREDENTIAL_TYPES).withMessage('Invalid credential type'),
+  body('username').optional().trim().isLength({ max: 100 }).withMessage('Username must be less than 100 characters'),
+  body('password').optional().isLength({ max: 500 }).withMessage('Password must be less than 500 characters'),
+  body('token').optional().isLength({ max: 2000 }).withMessage('Token must be less than 2000 characters'),
+  body('privateKey').optional().isLength({ max: 10000 }).withMessage('Private key must be less than 10000 characters'),
+  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters')
+], validate, (req, res) => {
   const { name, type, username, password, token, privateKey, passphrase, description } = req.body;
-  if (!name) return res.status(400).json({ success: false, error: 'Credential name is required' });
-  if (!['username-password', 'token', 'ssh-key', 'telegram', 'slack', 'teams', 'mail'].includes(type)) {
-    return res.status(400).json({ success: false, error: 'Invalid credential type' });
-  }
 
   const credential = Credential.create({
     name, type, username, password, token, privateKey, passphrase, description
@@ -30,7 +49,17 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/credentials/:id - Update credential
-router.put('/:id', (req, res) => {
+router.put('/:id', [
+  param('id').isUUID().withMessage('Invalid credential ID'),
+  body('name').optional().trim().notEmpty().withMessage('Credential name cannot be empty')
+    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
+  body('type').optional().isIn(VALID_CREDENTIAL_TYPES).withMessage('Invalid credential type'),
+  body('username').optional().trim().isLength({ max: 100 }).withMessage('Username must be less than 100 characters'),
+  body('password').optional().isLength({ max: 500 }).withMessage('Password must be less than 500 characters'),
+  body('token').optional().isLength({ max: 2000 }).withMessage('Token must be less than 2000 characters'),
+  body('privateKey').optional().isLength({ max: 10000 }).withMessage('Private key must be less than 10000 characters'),
+  body('description').optional().trim().isLength({ max: 500 }).withMessage('Description must be less than 500 characters')
+], validate, (req, res) => {
   const credential = Credential.findById(req.params.id);
   if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
 
@@ -39,7 +68,9 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/credentials/:id - Delete credential
-router.delete('/:id', (req, res) => {
+router.delete('/:id', [
+  param('id').isUUID().withMessage('Invalid credential ID')
+], validate, (req, res) => {
   const credential = Credential.findById(req.params.id);
   if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
 
@@ -48,11 +79,14 @@ router.delete('/:id', (req, res) => {
 });
 
 // POST /api/credentials/:id/test - Test a notification credential
-router.post('/:id/test', (req, res) => {
+router.post('/:id/test', [
+  param('id').isUUID().withMessage('Invalid credential ID'),
+  body('channel').optional().trim().isLength({ max: 100 }).withMessage('Channel must be less than 100 characters'),
+  body('message').optional().trim().isLength({ max: 2000 }).withMessage('Message must be less than 2000 characters')
+], validate, (req, res) => {
   const credential = Credential.findById(req.params.id);
   if (!credential) return res.status(404).json({ success: false, error: 'Credential not found' });
 
-  const { provider } = req.body;
   const { channel, message } = req.body;
 
   if (!['telegram', 'slack', 'teams', 'mail'].includes(credential.type)) {

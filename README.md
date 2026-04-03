@@ -14,7 +14,7 @@
 - **Git Integration** - Automatic git checkout with SSH/HTTPS credential support
 - **Real-time Builds** - Live build logs and progress visualization via WebSocket
 - **Build History Auto-refresh** - Automatically updates when builds start or complete
-- **User Management** - Role-based access control (Admin/Contributor)
+- **User Management** - Role-based access control (Admin/User)
 - **Credential Manager** - Secure storage for SSH keys, tokens, and notification credentials
 - **Notifications** - Send build status to Telegram, Slack, Teams, and Email during build execution
 - **Dynamic Variables** - Build notifications support {{PIPELINE_NAME}}, {{BUILD_NUMBER}}, {{BRANCH}}, {{STATUS}}, {{COMMIT}}, {{DURATION}}, {{BUILD_URL}}
@@ -22,6 +22,10 @@
 - **Build Retention** - Configure how many builds to keep per pipeline
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
+- **API Pagination** - paginated list endpoints
+- **Health Checks** - Kubernetes-ready liveness/readiness probes
+- **TypeScript Support** - Type-safe backend with optional compilation
+- **Comprehensive Tests** - Jest test suite with coverage
 
 ## Quick Start
 
@@ -70,6 +74,51 @@ Open http://localhost:4200 and login with:
 - **Email**: admin@giwicd.local
 - **Password**: admin123
 
+### Running Tests
+
+```bash
+cd backend
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Coverage report
+```
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `JWT_SECRET` | Yes | - | JWT signing secret |
+| `PORT` | No | 3000 | Server port |
+| `NODE_ENV` | No | development | Environment |
+| `FRONTEND_URL` | No | http://localhost:4200 | CORS origin |
+| `DB_FILE` | No | ./data/db.json | Database file path |
+| `LOG_LEVEL` | No | info | Logging level (error/warn/info/debug) |
+
+## API Endpoints
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/health` | GET | No | Health check |
+| `/api/health/live` | GET | No | Liveness probe |
+| `/api/health/ready` | GET | No | Readiness probe |
+| `/api/auth/register` | POST | No | Register user |
+| `/api/auth/login` | POST | No | Login |
+| `/api/pipelines` | GET | Yes | List pipelines (paginated) |
+| `/api/pipelines` | POST | Yes | Create pipeline |
+| `/api/pipelines/:id` | GET | Yes | Get pipeline |
+| `/api/pipelines/:id` | PUT | Yes | Update pipeline |
+| `/api/pipelines/:id` | DELETE | Yes | Delete pipeline |
+| `/api/pipelines/:id/trigger` | POST | Yes | Trigger build |
+| `/api/builds` | GET | Yes | List builds (paginated) |
+| `/api/builds/:id` | GET | Yes | Get build |
+| `/api/builds/:id/cancel` | POST | Yes | Cancel build |
+| `/api/builds/:id/logs` | GET | Yes | Get build logs |
+| `/api/credentials` | GET | Yes | List credentials |
+| `/api/credentials` | POST | Yes | Create credential |
+| `/api/credentials/:id/test` | POST | Yes | Test notification |
+| `/api/admin/users` | GET | Admin | List users |
+| `/api/admin/settings` | GET | Admin | Get settings |
+
 ## Documentation
 
 Detailed documentation is available in [docs/README.md](docs/README.md).
@@ -80,20 +129,22 @@ Detailed documentation is available in [docs/README.md](docs/README.md).
 giwicd/
 ├── backend/                  # Node.js/Express API
 │   ├── src/
+│   │   ├── config/          # Configuration, validation
 │   │   ├── routes/          # API endpoints
-│   │   ├── models/           # Data models (Pipeline, Build, Credential, User)
-│   │   ├── services/         # Build executor, Git service, WebSocket manager
-│   │   └── middleware/       # Auth, error handling
-│   ├── data/                 # JSON database
-│   └── Dockerfile
+│   │   ├── models/          # Data models
+│   │   ├── services/        # Build executor, Git service, WebSocket
+│   │   └── middleware/     # Auth, rate limiting, CSRF, logging
+│   ├── data/                # JSON database
+│   ├── __tests__/           # Jest tests
+│   └── jest.config.js
 ├── frontend/                 # Angular SPA
 │   ├── src/app/
-│   │   ├── pages/            # Page components
-│   │   ├── services/         # API, Auth, WebSocket
-│   │   └── components/       # Reusable components
-│   └── Dockerfile.frontend
+│   │   ├── pages/           # Page components
+│   │   ├── services/        # API, Auth, WebSocket
+│   │   └── components/      # Reusable components
+│   └── Dockerfile
 ├── docker-compose.yml
-├── docs/                     # Documentation
+├── docs/                    # Documentation
 └── README.md
 ```
 
@@ -105,8 +156,20 @@ giwicd/
 | Database | LowDB (JSON) |
 | Auth | JWT, bcrypt |
 | Real-time | WebSocket |
+| Validation | express-validator |
+| Rate Limiting | express-rate-limit |
+| Testing | Jest, Supertest |
 | Frontend | Angular 20 |
 | Styling | SCSS, CSS Variables |
+
+## Security Features
+
+- JWT authentication with role-based access
+- Rate limiting on auth and API endpoints
+- CSRF protection with token validation
+- Input validation on all endpoints
+- Secure credential storage (masked in responses)
+- Environment validation at startup
 
 ## License
 

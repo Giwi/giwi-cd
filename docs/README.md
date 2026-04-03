@@ -10,7 +10,7 @@
 - **Real-time Builds** - Live build logs and progress visualization via WebSocket
 - **Build History Auto-refresh** - Automatically updates when builds start or complete
 - **Stage Progress Visualization** - Horizontal pill-based progress bar showing build stages
-- **User Management** - Role-based access control (Admin/Contributor)
+- **User Management** - Role-based access control (Admin/User)
 - **Credential Manager** - Secure storage for SSH keys, tokens, and notification credentials
 - **Notifications** - Send build status to Telegram, Slack, Teams, and Email during build execution
 - **Dynamic Variables** - Build notifications support {{PIPELINE_NAME}}, {{BUILD_NUMBER}}, {{BRANCH}}, {{STATUS}}, {{COMMIT}}, {{DURATION}}, {{BUILD_URL}}
@@ -20,7 +20,14 @@
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 - **Import/Export** - Share pipelines as JSON files
-- **API Authentication** - All API endpoints (except auth, dashboard, webhooks) require JWT authentication
+- **API Authentication** - All API endpoints (except auth, dashboard, webhooks, health) require JWT authentication
+- **TypeScript Support** - Type-safe backend with optional compilation
+- **Input Validation** - All endpoints validated with express-validator
+- **Rate Limiting** - API, auth, and trigger endpoints have rate limits
+- **Request Logging** - Structured JSON logging with request IDs
+- **API Pagination** - All list endpoints support page/limit
+- **Health Checks** - Kubernetes-ready liveness/readiness probes
+- **Test Framework** - Jest test suite with supertest
 
 ## Prerequisites
 
@@ -401,6 +408,14 @@ The push trigger must be enabled in the pipeline settings.
 
 ## API Reference
 
+### Health
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/health` | No | Full health check |
+| GET | `/api/health/live` | No | Liveness probe |
+| GET | `/api/health/ready` | No | Readiness probe |
+
 ### Authentication
 
 | Method | Endpoint | Description |
@@ -474,19 +489,33 @@ The push trigger must be enabled in the pipeline settings.
 
 ## Architecture
 
-### Backend
+## Testing
+
+Run the test suite:
+
+```bash
+cd backend
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Coverage report
+```
+
+### Backend Architecture
 
 ```
 Express.js
-├── Routes (auth, pipelines, builds, credentials, admin, webhooks, polling)
+├── Config (validateEnv, config module)
+├── Middleware (auth, rate-limit, csrf, logger, pagination, asyncHandler, errorHandler)
+├── Routes (health, auth, pipelines, builds, credentials, admin, webhooks, polling)
 ├── Models (User, Pipeline, Build, Credential)
-├── Services
-│   ├── BuildExecutor - Build execution engine
-│   ├── GitService - Git clone/pull operations
-│   ├── NotificationService - Telegram, Slack, Teams, Email notifications
-│   ├── PollingService - Git repository polling
-│   └── WebSocketManager - Real-time communication
-└── Middleware (JWT auth, error handling)
+└── Services
+    ├── BuildExecutor - Main orchestration
+    ├── StageRunner - Stage/step execution
+    ├── CommandExecutor - Shell command execution
+    ├── GitService - Git clone/pull operations
+    ├── NotificationService - Telegram, Slack, Teams, Email
+    ├── PollingService - Git repository polling
+    └── WebSocketManager - Real-time communication
 ```
 
 ### Frontend

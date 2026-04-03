@@ -1,8 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, query, validationResult } = require('express-validator');
 const Pipeline = require('../models/Pipeline');
 const Build = require('../models/Build');
 const Credential = require('../models/Credential');
+const { triggerLimiter } = require('../middleware/rateLimit');
+const { asyncHandler } = require('../middleware/asyncHandler');
+const { createPagination, paginate } = require('../middleware/pagination');
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, error: errors.array()[0].msg });
+  }
+  next();
+};
 
 function enrichWithCredential(pipeline) {
   if (!pipeline) return null;
@@ -17,31 +29,43 @@ function enrichWithCredential(pipeline) {
 }
 
 // GET /api/pipelines - List all pipelines
-router.get('/', (req, res) => {
-  const pipelines = Pipeline.findAll().map(p => enrichWithCredential(p));
-  res.json({ success: true, data: pipelines, total: pipelines.length });
+router.get('/', createPagination(20, 50), (req, res) => {
+  const allPipelines = Pipeline.findAll().map(p => enrichWithCredential(p));
+  const result = paginate(allPipelines, allPipelines.length, req.pagination);
+  res.json({ success: true, ...result });
 });
 
 // GET /api/pipelines/:id - Get pipeline by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', [
+  param('id').isUUID().withMessage('Invalid pipeline ID')
+], validate, (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
   res.json({ success: true, data: enrichWithCredential(pipeline) });
 });
 
 // POST /api/pipelines - Create pipeline
-router.post('/', (req, res) => {
-  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment } = req.body;
-  if (!name) return res.status(400).json({ success: false, error: 'Pipeline name is required' });
+router.post('/', [
+  body('name').notEmpty().trim().withMessage('Pipeline name is required')
+    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
+  body('branch').optional().trim().isLength({ max: 100 }).withMessage('Branch must be less than 100 characters'),
+  body('repositoryUrl').optional().trim().isURL().withMessage('Invalid repository URL'),
+  body('credentialId').optional().isUUID().withMessage('Invalid credential ID'),
+  body('stages').optional().isArray().withMessage('Stages must be an array'),
+  body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100')
+], validate, (req, res) => {
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds } = req.body;
 
-  const pipeline = Pipeline.create({ name, description, repositoryUrl, credentialId, branch, stages, triggers, environment });
+  const pipeline = Pipeline.create({ name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds });
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline created successfully' });
 });
 
 // POST /api/pipelines/import - Import pipeline
-router.post('/import', (req, res) => {
+router.post('/import', [
+  body('name').notEmpty().trim().withMessage('Pipeline name is required')
+    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters')
+], validate, (req, res) => {
   const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment } = req.body;
-  if (!name) return res.status(400).json({ success: false, error: 'Pipeline name is required' });
 
   const pipeline = Pipeline.create({ 
     name, 
@@ -57,7 +81,16 @@ router.post('/import', (req, res) => {
 });
 
 // PUT /api/pipelines/:id - Update pipeline
-router.put('/:id', (req, res) => {
+router.put('/:id', [
+  param('id').isUUID().withMessage('Invalid pipeline ID'),
+  body('name').optional().trim().notEmpty().withMessage('Pipeline name cannot be empty')
+    .isLength({ max: 100 }).withMessage('Name must be less than 100 characters'),
+  body('branch').optional().trim().isLength({ max: 100 }).withMessage('Branch must be less than 100 characters'),
+  body('repositoryUrl').optional().trim().isURL().withMessage('Invalid repository URL'),
+  body('credentialId').optional().isUUID().withMessage('Invalid credential ID'),
+  body('stages').optional().isArray().withMessage('Stages must be an array'),
+  body('keepBuilds').optional().isInt({ min: 1, max: 100 }).withMessage('keepBuilds must be 1-100')
+], validate, (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
@@ -66,7 +99,9 @@ router.put('/:id', (req, res) => {
 });
 
 // DELETE /api/pipelines/:id - Delete pipeline
-router.delete('/:id', (req, res) => {
+router.delete('/:id', [
+  param('id').isUUID().withMessage('Invalid pipeline ID')
+], validate, (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
@@ -75,16 +110,27 @@ router.delete('/:id', (req, res) => {
 });
 
 // GET /api/pipelines/:id/builds - Get builds for a pipeline
-router.get('/:id/builds', (req, res) => {
+router.get('/:id/builds', createPagination(20, 50), [
+  param('id').isUUID().withMessage('Invalid pipeline ID'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be 1-100')
+], validate, (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
-  const builds = Build.findAll({ pipelineId: req.params.id, limit: req.query.limit });
-  res.json({ success: true, data: builds, total: builds.length });
+  const allBuilds = Build.findAll({ pipelineId: req.params.id });
+  const { offset, limit } = req.pagination;
+  const paginatedBuilds = allBuilds.slice(offset, offset + limit);
+  const result = paginate(paginatedBuilds, allBuilds.length, req.pagination);
+  res.json({ success: true, ...result });
 });
 
 // POST /api/pipelines/:id/trigger - Trigger a new build
-router.post('/:id/trigger', async (req, res) => {
+router.post('/:id/trigger', triggerLimiter, [
+  param('id').isUUID().withMessage('Invalid pipeline ID'),
+  body('branch').optional().trim().isLength({ max: 100 }).withMessage('Branch must be less than 100 characters'),
+  body('commit').optional().trim().isLength({ max: 100 }).withMessage('Commit must be less than 100 characters')
+], validate, asyncHandler(async (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
   if (!pipeline.enabled) return res.status(400).json({ success: false, error: 'Pipeline is disabled' });
@@ -99,13 +145,11 @@ router.post('/:id/trigger', async (req, res) => {
     stages: (pipeline.stages || []).map(s => ({ ...s, status: 'pending' }))
   });
 
-  // Broadcast that a new build was created
   const wsManager = req.app.get('wsManager');
   if (wsManager) {
     wsManager.broadcast({ type: 'build:created', buildId: build.id, pipelineId: pipeline.id });
   }
 
-  // Execute build in next tick to not block the response
   setImmediate(() => {
     const executor = req.app.get('buildExecutor');
     executor.execute(build, pipeline).catch(err => {
@@ -114,10 +158,12 @@ router.post('/:id/trigger', async (req, res) => {
   });
 
   res.status(202).json({ success: true, data: build, message: 'Build triggered successfully' });
-});
+}));
 
 // PATCH /api/pipelines/:id/toggle - Toggle pipeline enabled/disabled
-router.patch('/:id/toggle', (req, res) => {
+router.patch('/:id/toggle', [
+  param('id').isUUID().withMessage('Invalid pipeline ID')
+], validate, (req, res) => {
   const pipeline = Pipeline.findById(req.params.id);
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 

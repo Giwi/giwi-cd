@@ -1,8 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const { body, param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const db = require('../config/database');
 const { authenticate, requireRole, generateToken } = require('../middleware/auth');
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+  next();
+};
 
 router.use(authenticate);
 router.use(requireRole('admin'));
@@ -16,7 +25,9 @@ router.get('/users', (req, res) => {
   }
 });
 
-router.get('/users/:id', (req, res) => {
+router.get('/users/:id', [
+  param('id').isUUID().withMessage('Invalid user ID')
+], validate, (req, res) => {
   try {
     const user = User.findById(req.params.id);
     if (!user) {
@@ -28,24 +39,16 @@ router.get('/users/:id', (req, res) => {
   }
 });
 
-router.post('/users', async (req, res) => {
+router.post('/users', [
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('username').optional().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
+  body('role').optional().isIn(['admin', 'user']).withMessage('Role must be admin or user')
+], validate, async (req, res) => {
   try {
     const { email, password, username, role } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
-    const validRoles = ['admin', 'contributor'];
-    if (role && !validRoles.includes(role)) {
-      return res.status(400).json({ error: 'Invalid role. Must be admin or contributor' });
-    }
-
-    const user = await User.create({ email, password, username, role: role || 'contributor' });
+    const user = await User.create({ email, password, username, role: role || 'user' });
     const token = generateToken(user.id);
 
     res.status(201).json({
@@ -61,24 +64,18 @@ router.post('/users', async (req, res) => {
   }
 });
 
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', [
+  param('id').isUUID().withMessage('Invalid user ID'),
+  body('username').optional().isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters'),
+  body('role').optional().isIn(['admin', 'user']).withMessage('Role must be admin or user'),
+  body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], validate, async (req, res) => {
   try {
     const { username, role, password } = req.body;
 
     const targetUser = User.findById(req.params.id);
     if (!targetUser) {
       return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (role) {
-      const validRoles = ['admin', 'contributor'];
-      if (!validRoles.includes(role)) {
-        return res.status(400).json({ error: 'Invalid role' });
-      }
-    }
-
-    if (password && password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
     const user = await User.update(req.params.id, { username, role, password });
@@ -88,7 +85,9 @@ router.put('/users/:id', async (req, res) => {
   }
 });
 
-router.delete('/users/:id', (req, res) => {
+router.delete('/users/:id', [
+  param('id').isUUID().withMessage('Invalid user ID')
+], validate, (req, res) => {
   try {
     const user = User.findById(req.params.id);
     if (!user) {
@@ -115,7 +114,13 @@ router.get('/settings', (req, res) => {
   }
 });
 
-router.put('/settings', (req, res) => {
+router.put('/settings', [
+  body('allowRegistration').optional().isBoolean().withMessage('allowRegistration must be a boolean'),
+  body('maxConcurrentBuilds').optional().isInt({ min: 1, max: 10 }).withMessage('maxConcurrentBuilds must be 1-10'),
+  body('defaultTimeout').optional().isInt({ min: 60 }).withMessage('defaultTimeout must be at least 60'),
+  body('retentionDays').optional().isInt({ min: 1, max: 365 }).withMessage('retentionDays must be 1-365'),
+  body('pollingInterval').optional().isInt({ min: 10, max: 3600 }).withMessage('pollingInterval must be 10-3600')
+], validate, (req, res) => {
   try {
     const { allowRegistration, maxConcurrentBuilds, defaultTimeout, retentionDays, pollingInterval, notificationDefaults } = req.body;
     
@@ -125,32 +130,16 @@ router.put('/settings', (req, res) => {
       updates.allowRegistration = !!allowRegistration;
     }
     if (maxConcurrentBuilds !== undefined) {
-      const value = parseInt(maxConcurrentBuilds, 10);
-      if (value < 1 || value > 10) {
-        return res.status(400).json({ error: 'maxConcurrentBuilds must be between 1 and 10' });
-      }
-      updates.maxConcurrentBuilds = value;
+      updates.maxConcurrentBuilds = maxConcurrentBuilds;
     }
     if (defaultTimeout !== undefined) {
-      const value = parseInt(defaultTimeout, 10);
-      if (value < 60) {
-        return res.status(400).json({ error: 'defaultTimeout must be at least 60 seconds' });
-      }
-      updates.defaultTimeout = value;
+      updates.defaultTimeout = defaultTimeout;
     }
     if (retentionDays !== undefined) {
-      const value = parseInt(retentionDays, 10);
-      if (value < 1 || value > 365) {
-        return res.status(400).json({ error: 'retentionDays must be between 1 and 365' });
-      }
-      updates.retentionDays = value;
+      updates.retentionDays = retentionDays;
     }
     if (pollingInterval !== undefined) {
-      const value = parseInt(pollingInterval, 10);
-      if (value < 10 || value > 3600) {
-        return res.status(400).json({ error: 'pollingInterval must be between 10 and 3600 seconds' });
-      }
-      updates.pollingInterval = value;
+      updates.pollingInterval = pollingInterval;
     }
     if (notificationDefaults !== undefined) {
       updates.notificationDefaults = notificationDefaults;
