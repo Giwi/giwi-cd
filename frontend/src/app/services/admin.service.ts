@@ -6,7 +6,7 @@ import { AdminSettings, UserListItem } from '../models/admin.types';
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/admin';
+  private apiUrl = '/api/v1/admin';
 
   getSettings(): Observable<{ settings: AdminSettings }> {
     return this.http.get<{ settings: AdminSettings }>(`${this.apiUrl}/settings`);

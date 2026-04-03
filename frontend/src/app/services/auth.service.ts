@@ -11,7 +11,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   
-  private readonly apiUrl = '/api/auth';
+  private readonly apiUrl = '/api/v1/auth';
   private readonly tokenKey = 'giwicd_token';
   private readonly userKey = 'giwicd_user';
 
