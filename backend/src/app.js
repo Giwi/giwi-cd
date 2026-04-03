@@ -21,6 +21,7 @@ const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhooks');
 const healthRoutes = require('./routes/health');
 const pollingRoutes = require('./routes/polling');
+const artifactRoutes = require('./routes/artifacts');
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use('/api/pipelines', authenticate, pipelineRoutes);
 app.use('/api/builds', authenticate, buildRoutes);
 app.use('/api/credentials', authenticate, credentialRoutes);
 app.use('/api/polling', authenticate, pollingRoutes);
+app.use('/api/artifacts', authenticate, artifactRoutes);
 
 app.get('*', (req, res, next) => {
   if (!req.path.startsWith('/api')) {
