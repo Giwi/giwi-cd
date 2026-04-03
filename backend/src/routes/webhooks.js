@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const Pipeline = require('../models/Pipeline');
 const Build = require('../models/Build');
+const { RateLimiter } = require('../middleware/rateLimiter');
+
+const webhookLimiter = new RateLimiter({
+  windowMs: 60000,
+  max: 30,
+  message: 'Too many webhook requests, please try again later'
+});
+
+router.use(webhookLimiter.middleware());
 
 function normalizeRepoUrl(url) {
   if (!url) return null;
