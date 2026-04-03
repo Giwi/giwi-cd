@@ -87,7 +87,7 @@ const retry = async (fn, options = {}) => {
 };
 
 const retrySync = (fn, options = {}) => {
-  const { maxAttempts, delayMs, backoffMultiplier, maxDelayMs, onRetry } = { ...DEFAULT_OPTIONS, ...options };
+  const { maxAttempts, delayMs, backoffMultiplier, maxDelayMs, onRetry, retryableErrors: customErrors } = { ...DEFAULT_OPTIONS, ...options };
 
   let lastError;
   let attempt = 0;
@@ -100,7 +100,7 @@ const retrySync = (fn, options = {}) => {
     } catch (error) {
       lastError = error;
       
-      if (attempt >= maxAttempts || !isRetryable(error)) {
+      if (attempt >= maxAttempts || !isRetryable(error, customErrors)) {
         throw error;
       }
 
