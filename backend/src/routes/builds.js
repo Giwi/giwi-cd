@@ -3,6 +3,7 @@ const router = express.Router();
 const { param, query, validationResult } = require('express-validator');
 const Build = require('../models/Build');
 const { createPagination, paginate } = require('../middleware/pagination');
+const { dbIndex } = require('../config/databaseIndex');
 
 const validationResultHandler = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,7 +13,6 @@ const validationResultHandler = (req, res, next) => {
   next();
 };
 
-// GET /api/builds - List all builds
 router.get('/', createPagination(20, 50), [
   query('pipelineId').optional().isUUID().withMessage('Invalid pipeline ID'),
   query('status').optional().isIn(['pending', 'running', 'success', 'failed', 'error', 'cancelled']).withMessage('Invalid status'),
@@ -30,13 +30,44 @@ router.get('/', createPagination(20, 50), [
   res.json({ success: true, ...result });
 });
 
-// GET /api/builds/stats - Get build statistics
 router.get('/stats', (req, res) => {
   const stats = Build.getStats();
   res.json({ success: true, data: stats });
 });
 
-// GET /api/builds/:id - Get build by ID
+router.get('/stats/indexed', (req, res) => {
+  const builds = dbIndex.getBuildsByPipeline('*') || [];
+  const all = builds;
+  const now = new Date();
+  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const recent24h = all.filter(b => new Date(b.createdAt) > last24h);
+  const recent7d = all.filter(b => new Date(b.createdAt) > last7d);
+  const success = all.filter(b => b.status === 'success');
+  const failed = all.filter(b => b.status === 'failed');
+
+  res.json({
+    success: true,
+    data: {
+      total: all.length,
+      last24h: recent24h.length,
+      last7d: recent7d.length,
+      successRate: all.length ? Math.round((success.length / all.length) * 100) : 0,
+      byStatus: {
+        pending: all.filter(b => b.status === 'pending').length,
+        running: all.filter(b => b.status === 'running').length,
+        success: success.length,
+        failed: failed.length,
+        cancelled: all.filter(b => b.status === 'cancelled').length
+      },
+      avgDuration: success.length
+        ? Math.round(success.reduce((s, b) => s + (b.duration || 0), 0) / success.length)
+        : 0
+    }
+  });
+});
+
 router.get('/:id', [
   param('id').isUUID().withMessage('Invalid build ID')
 ], validationResultHandler, (req, res) => {
@@ -45,7 +76,6 @@ router.get('/:id', [
   res.json({ success: true, data: build });
 });
 
-// GET /api/builds/:id/logs - Get build logs
 router.get('/:id/logs', [
   param('id').isUUID().withMessage('Invalid build ID')
 ], validationResultHandler, (req, res) => {
@@ -54,7 +84,6 @@ router.get('/:id/logs', [
   res.json({ success: true, data: build.logs || [], total: (build.logs || []).length });
 });
 
-// POST /api/builds/:id/cancel - Cancel a running build
 router.post('/:id/cancel', [
   param('id').isUUID().withMessage('Invalid build ID')
 ], validationResultHandler, (req, res) => {
@@ -74,7 +103,6 @@ router.post('/:id/cancel', [
   res.json({ success: true, message: 'Build cancelled' });
 });
 
-// DELETE /api/builds/:id - Delete a build
 router.delete('/:id', [
   param('id').isUUID().withMessage('Invalid build ID')
 ], validationResultHandler, (req, res) => {

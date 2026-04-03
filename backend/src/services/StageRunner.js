@@ -56,7 +56,7 @@ class StageRunner {
 
     while ((match = credPattern.exec(command)) !== null) {
       const credName = match[1];
-      const cred = Credential.findAll().find(c => c.name.toLowerCase() === credName.toLowerCase());
+      const cred = Credential.findByName(credName);
       
       if (cred) {
         let value = '';

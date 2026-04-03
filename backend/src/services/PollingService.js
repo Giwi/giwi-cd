@@ -2,7 +2,7 @@ const Pipeline = require('../models/Pipeline');
 const Build = require('../models/Build');
 const GitService = require('./GitService');
 const wsManager = require('./WebSocketManager');
-const db = require('../config/database');
+const { db } = require('../config/database');
 
 class PollingService {
   constructor(buildExecutor) {

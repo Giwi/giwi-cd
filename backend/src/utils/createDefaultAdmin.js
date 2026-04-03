@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const db = require('../config/database');
+const { db } = require('../config/database');
 
 const DEFAULT_ADMIN = {
   email: 'admin@giwicd.local',

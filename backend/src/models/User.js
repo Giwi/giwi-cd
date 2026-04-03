@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
-const db = require('../config/database');
+const { db, dbIndex } = require('../config/database');
 
 class User {
   static async create(data) {

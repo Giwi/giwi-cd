@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
-const db = require('../config/database');
+const { db, dbIndex } = require('../config/database');
+const { credentialCache } = require('../services/CredentialCache');
 
 class Credential {
   static create(data) {
@@ -22,12 +23,20 @@ class Credential {
   }
 
   static findAll() {
-    return db.get('credentials').value().map(c => this.sanitize(c));
+    const credentials = db.get('credentials').value();
+    return credentials.map(c => this.sanitize(c));
   }
 
   static findById(id) {
+    const cached = credentialCache.get(id);
+    if (cached) return cached;
+
     const cred = db.get('credentials').find({ id }).value();
-    return cred ? this.sanitize(cred) : null;
+    if (!cred) return null;
+    
+    const sanitized = this.sanitize(cred);
+    credentialCache.set(id, sanitized);
+    return sanitized;
   }
 
   static update(id, data) {
@@ -48,11 +57,13 @@ class Credential {
       updatedAt: new Date().toISOString()
     };
     db.get('credentials').find({ id }).assign(updated).write();
+    credentialCache.invalidate(id);
     return this.sanitize(updated);
   }
 
   static delete(id) {
     db.get('credentials').remove({ id }).write();
+    credentialCache.invalidate(id);
     return true;
   }
 
@@ -67,8 +78,31 @@ class Credential {
   }
 
   static getRaw(id) {
+    const cached = credentialCache.get(id);
+    if (cached) {
+      return { ...cached, password: '', token: '', privateKey: '', passphrase: '' };
+    }
+
     const cred = db.get('credentials').find({ id }).value();
-    return cred || null;
+    if (!cred) return null;
+    
+    credentialCache.set(id, cred);
+    return cred;
+  }
+
+  static findByName(name) {
+    const cached = credentialCache.getByName(name);
+    if (cached) return cached;
+
+    const cred = db.get('credentials')
+      .find(c => c.name.toLowerCase() === name.toLowerCase())
+      .value();
+    
+    if (!cred) return null;
+    
+    const sanitized = this.sanitize(cred);
+    credentialCache.set(cred.id, sanitized);
+    return sanitized;
   }
 }
 

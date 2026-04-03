@@ -11,7 +11,6 @@ if (!fs.existsSync(dbDir)) {
 const adapter = new FileSync(path.join(dbDir, 'db.json'));
 const db = low(adapter);
 
-// Set default data structure
 db.defaults({
   users: [],
   pipelines: [],
@@ -29,4 +28,21 @@ db.defaults({
   }
 }).write();
 
-module.exports = db;
+let dbIndex = null;
+
+const initDbIndex = () => {
+  if (dbIndex) return dbIndex;
+  
+  const { dbIndex: index } = require('./databaseIndex');
+  index.initialize(db);
+  dbIndex = index;
+  return dbIndex;
+};
+
+module.exports = {
+  get db() { return db; },
+  get dbIndex() { 
+    if (!dbIndex) initDbIndex();
+    return dbIndex;
+  }
+};

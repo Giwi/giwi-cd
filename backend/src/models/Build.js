@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const db = require('../config/database');
+const { db, dbIndex } = require('../config/database');
 
 class Build {
   static create(data) {
