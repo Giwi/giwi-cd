@@ -2,15 +2,25 @@ const request = require('supertest');
 const app = require('../src/app');
 const Pipeline = require('../src/models/Pipeline');
 const Credential = require('../src/models/Credential');
+const User = require('../src/models/User');
+const { generateToken } = require('../src/middleware/auth');
+const { db } = require('../src/config/database');
 
 let token = '';
 
 describe('Pipeline Routes (Authenticated)', () => {
-  beforeAll(async () => {
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ email: 'admin@giwicd.local', password: 'admin123' });
-    token = loginRes.body.token;
+  beforeEach(async () => {
+    db.set('pipelines', []).write();
+    let user = await User.findByEmail('admin@giwicd.local');
+    if (!user) {
+      user = await User.create({
+        email: 'admin@giwicd.local',
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin'
+      });
+    }
+    token = generateToken(user.id);
   });
 
   describe('GET /api/pipelines', () => {
