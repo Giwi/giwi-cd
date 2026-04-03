@@ -21,23 +21,58 @@ const pollingService = new PollingService(app.get('buildExecutor'));
 pollingService.start();
 app.set('pollingService', pollingService);
 
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received, shutting down gracefully...');
+const gracefulShutdown = async (signal) => {
+  logger.info(`${signal} received, initiating graceful shutdown...`);
+  
   pollingService.stop();
+  
+  const buildExecutor = app.get('buildExecutor');
+  const runningBuilds = buildExecutor.getRunningBuilds();
+  
+  if (runningBuilds.length > 0) {
+    logger.info(`Waiting for ${runningBuilds.length} build(s) to complete...`);
+    
+    const maxWaitTime = 30000;
+    const checkInterval = 1000;
+    let waited = 0;
+    
+    while (buildExecutor.getRunningBuilds().length > 0 && waited < maxWaitTime) {
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+      waited += checkInterval;
+      const remaining = buildExecutor.getRunningBuilds().length;
+      if (remaining > 0) {
+        logger.info(`${remaining} build(s) still running...`);
+      }
+    }
+    
+    const stillRunning = buildExecutor.getRunningBuilds();
+    if (stillRunning.length > 0) {
+      logger.warn(`${stillRunning.length} build(s) did not complete in time, forcing shutdown`);
+      
+      for (const buildId of stillRunning) {
+        buildExecutor.cancel(buildId);
+      }
+    } else {
+      logger.info('All builds completed');
+    }
+  } else {
+    logger.info('No running builds to wait for');
+  }
+  
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
   });
-});
+  
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT signal received, shutting down gracefully...');
-  pollingService.stop();
-  server.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 server.listen(PORT, () => {
   const env = config.get('server.env').padEnd(14);
