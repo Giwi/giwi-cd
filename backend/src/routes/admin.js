@@ -4,12 +4,13 @@ const { body, param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { db } = require('../config/database');
 const { authenticate, requireRole, generateToken } = require('../middleware/auth');
+const { sendError } = require('../middleware/errorHandler');
 const logger = require('../config/logger');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ error: errors.array()[0].msg });
+    return sendError(res, 400, errors.array()[0].msg);
   }
   next();
 };
@@ -69,7 +70,7 @@ router.get('/logs', (req, res) => {
     
     res.json({ success: true, data: logs });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch logs' });
+    sendError(res, 500, 'Failed to fetch logs');
   }
 });
 
@@ -78,7 +79,7 @@ router.delete('/logs', (req, res) => {
     logBuffer = [];
     res.json({ success: true, message: 'Logs cleared' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to clear logs' });
+    sendError(res, 500, 'Failed to clear logs');
   }
 });
 
@@ -87,7 +88,7 @@ router.get('/users', (req, res) => {
     const users = User.findAll();
     res.json({ users });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch users' });
+    sendError(res, 500, 'Failed to fetch users');
   }
 });
 
@@ -97,11 +98,11 @@ router.get('/users/:id', [
   try {
     const user = User.findById(req.params.id);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return sendError(res, 404, 'User not found');
     }
     res.json({ user });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch user' });
+    sendError(res, 500, 'Failed to fetch user');
   }
 });
 
@@ -124,9 +125,9 @@ router.post('/users', [
     });
   } catch (error) {
     if (error.message === 'Email already registered') {
-      return res.status(409).json({ error: error.message });
+      return sendError(res, 409, error.message);
     }
-    res.status(500).json({ error: 'Failed to create user' });
+    sendError(res, 500, 'Failed to create user');
   }
 });
 
@@ -141,13 +142,13 @@ router.put('/users/:id', [
 
     const targetUser = User.findById(req.params.id);
     if (!targetUser) {
-      return res.status(404).json({ error: 'User not found' });
+      return sendError(res, 404, 'User not found');
     }
 
     const user = await User.update(req.params.id, { username, role, password });
     res.json({ user });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update user' });
+    sendError(res, 500, 'Failed to update user');
   }
 });
 
@@ -157,17 +158,17 @@ router.delete('/users/:id', [
   try {
     const user = User.findById(req.params.id);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return sendError(res, 404, 'User not found');
     }
 
     if (user.id === req.user.id) {
-      return res.status(400).json({ error: 'Cannot delete your own account' });
+      return sendError(res, 400, 'Cannot delete your own account');
     }
 
     User.delete(req.params.id);
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete user' });
+    sendError(res, 500, 'Failed to delete user');
   }
 });
 
@@ -176,7 +177,7 @@ router.get('/settings', (req, res) => {
     const settings = db.get('settings').value();
     res.json({ settings });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch settings' });
+    sendError(res, 500, 'Failed to fetch settings');
   }
 });
 
@@ -215,7 +216,7 @@ router.put('/settings', [
     const settings = db.get('settings').value();
     res.json({ settings, message: 'Settings updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update settings' });
+    sendError(res, 500, 'Failed to update settings');
   }
 });
 

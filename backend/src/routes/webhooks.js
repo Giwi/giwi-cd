@@ -3,6 +3,7 @@ const router = express.Router();
 const Pipeline = require('../models/Pipeline');
 const Build = require('../models/Build');
 const { RateLimiter } = require('../middleware/rateLimiter');
+const { sendError } = require('../middleware/errorHandler');
 
 const webhookLimiter = new RateLimiter({
   windowMs: 60000,
@@ -24,18 +25,11 @@ function matchesRepo(pipelineUrl, webhookUrl) {
 
 router.get('/webhook/:pipelineId', (req, res) => {
   const pipeline = Pipeline.findById(req.params.pipelineId);
-  if (!pipeline) {
-    return res.status(404).json({ error: 'Pipeline not found' });
-  }
-
-  if (!pipeline.enabled) {
-    return res.status(400).json({ error: 'Pipeline is disabled' });
-  }
+  if (!pipeline) return sendError(res, 404, 'Pipeline not found');
+  if (!pipeline.enabled) return sendError(res, 400, 'Pipeline is disabled');
 
   const executor = req.app.get('buildExecutor');
-  if (!executor) {
-    return res.status(500).json({ error: 'Build executor not available' });
-  }
+  if (!executor) return sendError(res, 500, 'Build executor not available');
 
   const build = Build.create({
     pipelineId: pipeline.id,
@@ -50,7 +44,7 @@ router.get('/webhook/:pipelineId', (req, res) => {
     console.error('[Webhook] Build execution error:', err.message);
   });
 
-  res.json({ 
+  res.json({
     message: 'Build triggered successfully',
     pipeline: pipeline.name,
     buildId: build.id
@@ -59,22 +53,12 @@ router.get('/webhook/:pipelineId', (req, res) => {
 
 router.post('/webhook/:pipelineId', (req, res) => {
   const pipeline = Pipeline.findById(req.params.pipelineId);
-  if (!pipeline) {
-    return res.status(404).json({ error: 'Pipeline not found' });
-  }
-
-  if (!pipeline.enabled) {
-    return res.status(400).json({ error: 'Pipeline is disabled' });
-  }
-
-  if (!pipeline.triggers?.push) {
-    return res.status(400).json({ error: 'Push triggers not enabled for this pipeline' });
-  }
+  if (!pipeline) return sendError(res, 404, 'Pipeline not found');
+  if (!pipeline.enabled) return sendError(res, 400, 'Pipeline is disabled');
+  if (!pipeline.triggers?.push) return sendError(res, 400, 'Push triggers not enabled for this pipeline');
 
   const executor = req.app.get('buildExecutor');
-  if (!executor) {
-    return res.status(500).json({ error: 'Build executor not available' });
-  }
+  if (!executor) return sendError(res, 500, 'Build executor not available');
 
   const payload = req.body;
   const event = req.headers['x-github-event'] || req.headers['x-gitlab-event'] || req.headers['x-event-key'];
@@ -132,19 +116,17 @@ router.post('/webhook/:pipelineId', (req, res) => {
 
 router.post('/webhook', (req, res) => {
   const payload = req.body;
-  const repoUrl = payload.repository?.url || 
-                  payload.repository?.git_http_url || 
+  const repoUrl = payload.repository?.url ||
+                  payload.repository?.git_http_url ||
                   payload.repository?.links?.html?.href ||
                   payload.project?.web_url ||
                   req.headers['x-repo-url'];
 
-  if (!repoUrl) {
-    return res.status(400).json({ error: 'Repository URL not found in payload' });
-  }
+  if (!repoUrl) return sendError(res, 400, 'Repository URL not found in payload');
 
   const allPipelines = Pipeline.findAll();
-  const matchingPipelines = allPipelines.filter(p => 
-    p.enabled && 
+  const matchingPipelines = allPipelines.filter(p =>
+    p.enabled &&
     p.triggers?.push &&
     matchesRepo(p.repositoryUrl, repoUrl)
   );
@@ -154,9 +136,7 @@ router.post('/webhook', (req, res) => {
   }
 
   const executor = req.app.get('buildExecutor');
-  if (!executor) {
-    return res.status(500).json({ error: 'Build executor not available' });
-  }
+  if (!executor) return sendError(res, 500, 'Build executor not available');
 
   let branch = null;
   let commit = null;
@@ -189,7 +169,7 @@ router.post('/webhook', (req, res) => {
 
   for (const pipeline of matchingPipelines) {
     const triggerBranch = branch || pipeline.branch;
-    
+
     if (pipeline.branch && pipeline.branch !== '*' && pipeline.branch !== triggerBranch) {
       continue;
     }
@@ -223,12 +203,10 @@ router.post('/webhook', (req, res) => {
 
 router.get('/webhook/generate/:pipelineId', (req, res) => {
   const pipeline = Pipeline.findById(req.params.pipelineId);
-  if (!pipeline) {
-    return res.status(404).json({ error: 'Pipeline not found' });
-  }
+  if (!pipeline) return sendError(res, 404, 'Pipeline not found');
 
   const webhookUrl = `${req.protocol}://${req.get('host')}/api/webhooks/${pipeline.id}`;
-  
+
   res.json({
     pipelineId: pipeline.id,
     pipelineName: pipeline.name,

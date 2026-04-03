@@ -21,4 +21,17 @@ const notFound = (req, res) => {
   });
 };
 
-module.exports = { errorHandler, notFound };
+const sendError = (res, statusCode, message) => {
+  res.status(statusCode).json({ success: false, error: message });
+};
+
+class AppError extends Error {
+  constructor(message, statusCode = 500) {
+    super(message);
+    this.statusCode = statusCode;
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+module.exports = { errorHandler, notFound, sendError, AppError };
