@@ -96,5 +96,9 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./pages/landing.component').then(m => m.LandingComponent)
   },
-  { path: '**', redirectTo: '' }
+  {
+    path: '404',
+    loadComponent: () => import('./pages/not-found.component').then(m => m.NotFoundComponent)
+  },
+  { path: '**', redirectTo: '404' }
 ];

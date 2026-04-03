@@ -2,6 +2,7 @@ import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
+  ErrorHandler,
 } from '@angular/core';
 import { provideRouter, withViewTransitions } from '@angular/router';
 import {
@@ -13,6 +14,8 @@ import {
 
 import { routes } from './app.routes';
 import { tokenInterceptor } from './services/token.interceptor';
+import { errorInterceptor } from './services/error.interceptor';
+import { GlobalErrorHandler } from './services/global-error-handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -21,8 +24,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withViewTransitions()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([tokenInterceptor]),
+      withInterceptors([tokenInterceptor, errorInterceptor]),
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-CSRF-TOKEN' }),
     ),
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
   ],
 };
