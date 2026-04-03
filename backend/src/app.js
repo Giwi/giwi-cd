@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const config = require('./config');
-const BuildExecutor = require('./services/BuildExecutor');
+const BuildRunner = require('./services/BuildRunner');
 const wsManager = require('./services/WebSocketManager');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { authenticate, optionalAuth } = require('./middleware/auth');
@@ -45,8 +45,9 @@ const appRoot = process.cwd();
 const frontendPath = path.resolve(appRoot, 'frontend/dist');
 app.use(express.static(frontendPath));
 
-const buildExecutor = new BuildExecutor(wsManager);
-app.set('buildExecutor', buildExecutor);
+const buildRunner = new BuildRunner(wsManager);
+app.set('buildRunner', buildRunner);
+app.set('buildExecutor', buildRunner.executor);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);

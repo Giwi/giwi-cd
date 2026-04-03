@@ -17,7 +17,7 @@ app.set('wsManager', wsManager);
 
 createDefaultAdmin();
 
-const pollingService = new PollingService(app.get('buildExecutor'));
+const pollingService = new PollingService(app.get('buildRunner'));
 pollingService.start();
 app.set('pollingService', pollingService);
 
@@ -26,35 +26,40 @@ const gracefulShutdown = async (signal) => {
   
   pollingService.stop();
   
-  const buildExecutor = app.get('buildExecutor');
-  const runningBuilds = buildExecutor.getRunningBuilds();
+  const buildRunner = app.get('buildRunner');
+  const runningBuilds = buildRunner.executor.getRunningBuilds();
+  const queuedBuilds = buildRunner.queue.getQueueLength();
   
-  if (runningBuilds.length > 0) {
+  logger.info(`Running: ${runningBuilds.length}, Queued: ${queuedBuilds}`);
+  
+  if (runningBuilds.length > 0 || queuedBuilds > 0) {
     logger.info(`Waiting for ${runningBuilds.length} build(s) to complete...`);
     
     const maxWaitTime = 30000;
     const checkInterval = 1000;
     let waited = 0;
     
-    while (buildExecutor.getRunningBuilds().length > 0 && waited < maxWaitTime) {
+    while (buildRunner.executor.getRunningBuilds().length > 0 && waited < maxWaitTime) {
       await new Promise(resolve => setTimeout(resolve, checkInterval));
       waited += checkInterval;
-      const remaining = buildExecutor.getRunningBuilds().length;
+      const remaining = buildRunner.executor.getRunningBuilds().length;
       if (remaining > 0) {
         logger.info(`${remaining} build(s) still running...`);
       }
     }
     
-    const stillRunning = buildExecutor.getRunningBuilds();
+    const stillRunning = buildRunner.executor.getRunningBuilds();
     if (stillRunning.length > 0) {
       logger.warn(`${stillRunning.length} build(s) did not complete in time, forcing shutdown`);
       
       for (const buildId of stillRunning) {
-        buildExecutor.cancel(buildId);
+        buildRunner.cancel(buildId);
       }
     } else {
       logger.info('All builds completed');
     }
+    
+    buildRunner.queue.clear();
   } else {
     logger.info('No running builds to wait for');
   }
