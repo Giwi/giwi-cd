@@ -129,3 +129,11 @@ export interface ApiResponse<T> {
   total?: number;
   error?: string;
 }
+
+export interface Artifact {
+  name: string;
+  path: string;
+  size: number;
+  createdAt: string;
+  modifiedAt: string;
+}

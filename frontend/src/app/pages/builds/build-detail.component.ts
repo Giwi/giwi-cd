@@ -4,7 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { ConfirmService } from '../../services/confirm.service';
-import { Build, Pipeline, BuildLog, ApiResponse, WebSocketMessage } from '../../models/types';
+import { Build, Pipeline, BuildLog, ApiResponse, WebSocketMessage, Artifact } from '../../models/types';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -111,38 +111,111 @@ import { Subscription } from 'rxjs';
         </div>
 
         <div class="col-lg-8">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Build Logs</h5>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-secondary" (click)="clearFilter()">
-                  All
-                </button>
-                <button class="btn btn-outline-danger" (click)="filterLogs('error')">
-                  Errors
-                </button>
-                <button class="btn btn-outline-warning" (click)="filterLogs('warn')">
-                  Warnings
-                </button>
+          <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab() === 'logs'" (click)="activeTab.set('logs')">
+                <i class="bi bi-terminal me-1"></i> Logs
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab() === 'artifacts'" (click)="loadArtifacts()">
+                <i class="bi bi-box-seam me-1"></i> Artifacts
+                @if (artifacts().length > 0) {
+                  <span class="badge bg-secondary ms-1">{{ artifacts().length }}</span>
+                }
+              </button>
+            </li>
+          </ul>
+
+          @if (activeTab() === 'logs') {
+            <div class="card border-0 shadow-sm">
+              <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Build Logs</h5>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" (click)="clearFilter()">
+                    All
+                  </button>
+                  <button class="btn btn-outline-danger" (click)="filterLogs('error')">
+                    Errors
+                  </button>
+                  <button class="btn btn-outline-warning" (click)="filterLogs('warn')">
+                    Warnings
+                  </button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="log-terminal" #logContainer>
+                  @for (log of filteredLogs(); track $index) {
+                    <div class="log-line log-{{ log.level }}">
+                      <span class="log-timestamp">{{ formatTime(log.timestamp) }}</span>
+                      <span class="log-message">{{ log.message }}</span>
+                    </div>
+                  }
+                  @if (filteredLogs().length === 0) {
+                    <div class="text-center text-muted py-4">
+                      <i class="bi bi-terminal fs-1 d-block mb-2"></i>
+                      No logs available
+                    </div>
+                  }
+                </div>
               </div>
             </div>
-            <div class="card-body p-0">
-              <div class="log-terminal" #logContainer>
-                @for (log of filteredLogs(); track $index) {
-                  <div class="log-line log-{{ log.level }}">
-                    <span class="log-timestamp">{{ formatTime(log.timestamp) }}</span>
-                    <span class="log-message">{{ log.message }}</span>
-                  </div>
+          }
+
+          @if (activeTab() === 'artifacts') {
+            <div class="card border-0 shadow-sm">
+              <div class="card-header card-header-theme py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Build Artifacts</h5>
+                @if (artifacts().length > 0) {
+                  <button class="btn btn-outline-danger btn-sm" (click)="downloadAllArtifacts()">
+                    <i class="bi bi-download me-1"></i> Download All
+                  </button>
                 }
-                @if (filteredLogs().length === 0) {
+              </div>
+              <div class="card-body p-0">
+                @if (loadingArtifacts()) {
+                  <div class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                  </div>
+                } @else if (artifacts().length === 0) {
                   <div class="text-center text-muted py-4">
-                    <i class="bi bi-terminal fs-1 d-block mb-2"></i>
-                    No logs available
+                    <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+                    No artifacts available
+                  </div>
+                } @else {
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Name</th>
+                          <th>Size</th>
+                          <th>Modified</th>
+                          <th class="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (artifact of artifacts(); track artifact.name) {
+                          <tr>
+                            <td>
+                              <i class="bi bi-file-earmark me-2"></i>
+                              {{ artifact.name }}
+                            </td>
+                            <td>{{ formatFileSize(artifact.size) }}</td>
+                            <td>{{ formatDate(artifact.modifiedAt) }}</td>
+                            <td class="text-end">
+                              <button class="btn btn-outline-primary btn-sm" (click)="downloadArtifact(artifact)">
+                                <i class="bi bi-download"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
                   </div>
                 }
               </div>
             </div>
-          </div>
+          }
         </div>
       </div>
     }
@@ -155,6 +228,9 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   loading = signal(true);
   filteredLogs = signal<BuildLog[]>([]);
   logFilter: string | null = null;
+  activeTab = signal<'logs' | 'artifacts'>('logs');
+  artifacts = signal<Artifact[]>([]);
+  loadingArtifacts = signal(false);
   private shouldScroll = true;
   private wsSub?: Subscription;
   confirmService = inject(ConfirmService);
@@ -175,7 +251,7 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   ngAfterViewChecked(): void {
-    if (this.shouldScroll && this.logContainer) {
+    if (this.shouldScroll && this.logContainer && this.activeTab() === 'logs') {
       const el = this.logContainer.nativeElement;
       el.scrollTop = el.scrollHeight;
       this.shouldScroll = false;
@@ -201,24 +277,63 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
     });
   }
 
-  subscribeToLogs(): void {
-    this.wsSub = this.ws.messages$.subscribe((msg: WebSocketMessage) => {
-      const msgType = msg['type'] as string;
-      const buildId = msg['buildId'] as string;
-      
-      if (msgType === 'build:log' && buildId === this.build()?.id) {
-        const log = msg['log'] as BuildLog;
-        const currentBuild = this.build();
-        if (currentBuild) {
-          const logs = [...(currentBuild.logs || []), log];
-          this.build.set({ ...currentBuild, logs });
-          this.applyFilter();
-          this.shouldScroll = true;
+  loadArtifacts(): void {
+    if (!this.build()) return;
+    this.loadingArtifacts.set(true);
+    const pipelineId = (this.build() as any)?.pipelineId;
+    const buildId = this.build()?.id;
+    
+    if (pipelineId && buildId) {
+      this.api.get<ApiResponse<Artifact[]>>(`/artifacts/${pipelineId}/${buildId}`).subscribe({
+        next: (res) => {
+          this.artifacts.set(res.data || []);
+          this.loadingArtifacts.set(false);
+        },
+        error: () => {
+          this.artifacts.set([]);
+          this.loadingArtifacts.set(false);
         }
-      } else if (msgType === 'build:complete' || msgType === 'build:cancelled' || msgType === 'build:stage') {
-        this.loadBuild(this.build()!.id);
-      }
-    });
+      });
+    }
+  }
+
+  downloadArtifact(artifact: Artifact): void {
+    if (!this.build()) return;
+    const buildId = this.build()?.id;
+    const artifactUrl = `${this.api.baseUrl}/artifacts/${artifact.name}?buildId=${buildId}`;
+    window.open(artifactUrl, '_blank');
+  }
+
+  downloadAllArtifacts(): void {
+    const artifacts = this.artifacts();
+    for (const artifact of artifacts) {
+      this.downloadArtifact(artifact);
+    }
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  formatTime(dateStr: string): string {
+    return new Date(dateStr).toLocaleTimeString();
+  }
+
+  formatDuration(seconds: number | null | undefined): string {
+    if (!seconds) return '-';
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins < 60 ? `${mins}m ${secs}s` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  }
+
+  formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString();
   }
 
   refresh(): void {
@@ -273,20 +388,24 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
     return status === 'success';
   }
 
-  formatDate(dateStr: string | null | undefined): string {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString();
-  }
-
-  formatTime(dateStr: string): string {
-    return new Date(dateStr).toLocaleTimeString();
-  }
-
-  formatDuration(seconds: number | null | undefined): string {
-    if (!seconds) return '-';
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins < 60 ? `${mins}m ${secs}s` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  subscribeToLogs(): void {
+    this.wsSub = this.ws.messages$.subscribe((msg: WebSocketMessage) => {
+      const msgType = msg['type'] as string;
+      const buildId = msg['buildId'] as string;
+      
+      if (msgType === 'build:log' && buildId === this.build()?.id) {
+        const log = msg['log'] as BuildLog;
+        const currentBuild = this.build();
+        if (currentBuild) {
+          const logs = [...(currentBuild.logs || []), log];
+          this.build.set({ ...currentBuild, logs });
+          this.applyFilter();
+          this.shouldScroll = true;
+        }
+      } else if (msgType === 'build:complete' || msgType === 'build:cancelled' || msgType === 'build:stage') {
+        this.loadBuild(this.build()!.id);
+      }
+    });
   }
 }
+
