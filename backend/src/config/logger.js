@@ -103,6 +103,8 @@ function cleanupOldLogs(maxAgeDays = 7) {
   }
 }
 
-setInterval(() => cleanupOldLogs(parseInt(process.env.LOG_RETENTION_DAYS || '7', 10)), 24 * 60 * 60 * 1000);
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(() => cleanupOldLogs(parseInt(process.env.LOG_RETENTION_DAYS || '7', 10)), 24 * 60 * 60 * 1000);
+}
 
 module.exports = logger;
