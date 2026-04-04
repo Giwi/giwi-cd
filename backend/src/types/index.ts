@@ -12,7 +12,7 @@ export interface Credential {
   id: string;
   userId?: string;
   name: string;
-  type: 'username-password' | 'token' | 'ssh-key';
+  type: 'username-password' | 'token' | 'ssh-key' | 'telegram' | 'slack' | 'teams' | 'mail';
   username?: string;
   password?: string;
   token?: string;
@@ -47,8 +47,17 @@ export interface Pipeline {
   lastCommit?: string | null;
   pollingInterval?: number;
   keepBuilds: number;
+  artifactPaths?: string[];
+  errorNotification?: ErrorNotification | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ErrorNotification {
+  provider: string;
+  credentialId?: string;
+  channel?: string;
+  message?: string;
 }
 
 export interface Stage {
@@ -121,4 +130,77 @@ export interface JwtPayload {
 
 export interface ApiError extends Error {
   statusCode?: number;
+}
+
+export interface RetryOptions {
+  maxAttempts: number;
+  delayMs: number;
+  backoffMultiplier: number;
+  maxDelayMs: number;
+  onRetry: ((info: RetryInfo) => void) | null;
+  retryableErrors: string[];
+}
+
+export interface RetryInfo {
+  attempt: number;
+  maxAttempts: number;
+  error: Error;
+  delay: number;
+}
+
+export interface PaginationOptions {
+  page: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface AppSettings {
+  maxConcurrentBuilds: number;
+  defaultTimeout: number;
+  retentionDays: number;
+  allowRegistration: boolean;
+  pollingInterval: number;
+  notificationDefaults: Record<string, unknown>;
+}
+
+export interface DbData {
+  users: Record<string, unknown>[];
+  pipelines: Record<string, unknown>[];
+  builds: Record<string, unknown>[];
+  jobs: Record<string, unknown>[];
+  agents: Record<string, unknown>[];
+  credentials: Record<string, unknown>[];
+  settings: AppSettings;
+}
+
+export interface ArtifactFile {
+  name: string;
+  content?: string;
+  path?: string;
+  size?: number;
+}
+
+export interface ArtifactInfo {
+  name: string;
+  path: string;
+  size: number;
+  createdAt: Date;
+  modifiedAt: Date;
+}
+
+export interface NotificationResult {
+  success: boolean;
+  error?: string;
 }

@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { v4: uuidv4 } = require('uuid');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const db = require('../config/database');
+const { db } = require('../config/database');
 import type { Build as IBuild, Stage, LogEntry } from '../types';
 
 interface BuildData {
@@ -39,8 +39,10 @@ export class Build {
       status: 'pending',
       stages: data.stages || [],
       logs: [],
-      startedAt: undefined,
-      finishedAt: undefined,
+      startedAt: null,
+      finishedAt: null,
+      duration: null,
+      number: this.getNextBuildNumber(data.pipelineId),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -61,11 +63,12 @@ export class Build {
     if (filters.status) {
       query = query.filter({ status: filters.status });
     }
-    return query.orderBy(['createdAt'], ['desc']).take(filters.limit || 100).value();
+    return query.orderBy(['createdAt'], ['desc']).take(filters.limit || 100).value() as IBuild[];
   }
 
   static findById(id: string): IBuild | undefined {
-    return db.get('builds').find({ id }).value();
+    const result = db.get('builds').find({ id }).value();
+    return result as IBuild | undefined;
   }
 
   static update(id: string, data: Partial<IBuild>): IBuild | undefined {
@@ -97,7 +100,8 @@ export class Build {
       const logEntry: LogEntry = {
         timestamp: new Date().toISOString(),
         level: log.level || 'info',
-        message: log.message
+        message: log.message,
+        stage: log.stage || null
       };
       const logs = [...(build.logs || []), logEntry];
       db.get('builds').find({ id }).assign({ logs }).write();
@@ -159,3 +163,5 @@ export class Build {
     db.set('builds', filteredBuilds).write();
   }
 }
+
+export default Build

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import db from '../config/database';
+import { db } from '../config/database';
 import type { Pipeline as IPipeline } from '../types';
 
 interface PipelineData {
@@ -12,6 +12,7 @@ interface PipelineData {
   triggers?: IPipeline['triggers'];
   environment?: string[];
   keepBuilds?: number;
+  artifactPaths?: string[];
 }
 
 export class Pipeline {
@@ -20,12 +21,21 @@ export class Pipeline {
       id: uuidv4(),
       userId: '',
       name: data.name,
+      description: data.description || '',
       repositoryUrl: data.repositoryUrl || '',
-      credentialId: data.credentialId || undefined,
+      credentialId: data.credentialId || null,
       branch: data.branch || 'main',
       stages: data.stages || [],
+      triggers: data.triggers || { manual: true, push: false, schedule: null },
+      environment: data.environment || [],
+      enabled: true,
       status: 'inactive',
+      lastBuildAt: null,
+      lastBuildStatus: null,
+      lastCommit: null,
+      pollingInterval: 60,
       keepBuilds: data.keepBuilds || 10,
+      artifactPaths: data.artifactPaths || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -71,10 +81,12 @@ export class Pipeline {
   }
 
   static getPushTriggerPipelines(): IPipeline[] {
-    return db.get('pipelines').filter(p => 
-      (p as IPipeline).enabled && 
-      (p as IPipeline).triggers?.push && 
+    return db.get('pipelines').filter((p: Record<string, unknown>) =>
+      (p as IPipeline).enabled &&
+      (p as IPipeline).triggers?.push &&
       (p as IPipeline).repositoryUrl
     ).value() as IPipeline[];
   }
 }
+
+export default Pipeline

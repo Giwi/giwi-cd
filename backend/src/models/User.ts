@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
-import db from '../config/database';
+import { db } from '../config/database';
 import type { User as IUser } from '../types';
 
 interface UserData {
@@ -28,6 +28,7 @@ export class User {
     const user: IUser = {
       id: uuidv4(),
       email: data.email,
+      username: data.username || data.email.split('@')[0],
       password: hashedPassword,
       role: (data.role as IUser['role']) || 'user',
       createdAt: new Date().toISOString(),
@@ -88,3 +89,5 @@ export class User {
     return true;
   }
 }
+
+export default User

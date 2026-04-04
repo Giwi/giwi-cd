@@ -75,7 +75,8 @@ export class Credential {
       ...cred,
       password: cred.password ? '********' : '',
       token: cred.token ? '********' : '',
-      privateKey: cred.privateKey ? '********' : ''
+      privateKey: cred.privateKey ? '********' : '',
+      passphrase: cred.passphrase ? '********' : ''
     };
   }
 
@@ -83,4 +84,13 @@ export class Credential {
     const cred = db.get('credentials').find({ id }).value();
     return cred || null;
   }
+
+  static findByName(name: string): ICredential | null {
+    const cred = db.get('credentials').value().find((c: ICredential) =>
+      c.name.toLowerCase() === name.toLowerCase()
+    );
+    return cred ? this.sanitize(cred as ICredential & { userId: string }) : null;
+  }
 }
+
+export default Credential
