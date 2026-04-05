@@ -60,7 +60,7 @@ class NotificationService {
 
     if (!apiKey && channel && (channel.startsWith('http') || channel.includes(':'))) {
       finalWebhookUrl = channel;
-      chatId = null;
+      chatId = undefined;
     }
 
     const interpolatedMessage = this._interpolate(build, pipeline, message || this._defaultMessage(build, pipeline));
@@ -71,7 +71,7 @@ class NotificationService {
       let result: NotificationResult;
       switch (provider) {
         case 'telegram':
-          result = await this._sendTelegram(buildId, apiKey, chatId, interpolatedMessage, emit);
+          result = await this._sendTelegram(buildId, apiKey ?? null, chatId ?? null, interpolatedMessage, emit);
           break;
         case 'slack':
           result = await this._sendSlack(buildId, finalWebhookUrl || apiKey, interpolatedMessage, build, pipeline, emit);

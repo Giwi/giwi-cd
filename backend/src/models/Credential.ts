@@ -27,25 +27,31 @@ export class Credential {
       privateKey: data.privateKey || '',
       passphrase: data.passphrase || '',
       description: data.description || '',
-      provider: data.provider || null,
+      provider: data.provider || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    db.get('credentials').push(credential).write();
+    db.get('credentials').push(credential as unknown as Record<string, unknown>).write();
     return this.sanitize(credential);
   }
 
   static findAll(): (ICredential & { userId: string })[] {
-    return db.get('credentials').value().map((c: ICredential & { userId: string }) => this.sanitize(c));
+    const values = db.get('credentials').value() as unknown as Record<string, unknown>[];
+    return values.map(c => {
+      const cred = c as unknown as ICredential & { userId: string };
+      return this.sanitize(cred);
+    });
   }
 
   static findById(id: string): (ICredential & { userId: string }) | null {
-    const cred = db.get('credentials').find({ id }).value();
-    return cred ? this.sanitize(cred) : null;
+    const cred = db.get('credentials').find({ id }).value() as Record<string, unknown> | undefined;
+    if (!cred) return null;
+    const credTyped = cred as unknown as ICredential & { userId: string };
+    return this.sanitize(credTyped);
   }
 
   static update(id: string, data: Partial<CredentialData>): (ICredential & { userId: string }) | null {
-    const existing = db.get('credentials').find({ id }).value();
+    const existing = db.get('credentials').find({ id }).value() as Record<string, unknown> | undefined;
     if (!existing) return null;
 
     const updated = {
@@ -61,8 +67,8 @@ export class Credential {
       provider: data.provider ?? existing.provider,
       updatedAt: new Date().toISOString()
     };
-    db.get('credentials').find({ id }).assign(updated).write();
-    return this.sanitize(updated);
+    db.get('credentials').find({ id }).assign(updated as Record<string, unknown>).write();
+    return this.sanitize(updated as ICredential & { userId: string });
   }
 
   static delete(id: string): boolean {
@@ -81,15 +87,19 @@ export class Credential {
   }
 
   static getRaw(id: string): (ICredential & { userId: string }) | null {
-    const cred = db.get('credentials').find({ id }).value();
-    return cred || null;
+    const cred = db.get('credentials').find({ id }).value() as Record<string, unknown> | undefined;
+    if (!cred) return null;
+    return cred as unknown as ICredential & { userId: string };
   }
 
   static findByName(name: string): ICredential | null {
-    const cred = db.get('credentials').value().find((c: ICredential) =>
-      c.name.toLowerCase() === name.toLowerCase()
-    );
-    return cred ? this.sanitize(cred as ICredential & { userId: string }) : null;
+    const values = db.get('credentials').value() as unknown as Record<string, unknown>[];
+    const cred = values.find((c: Record<string, unknown>) => {
+      const typed = c as unknown as ICredential;
+      return typed.name.toLowerCase() === name.toLowerCase();
+    });
+    if (!cred) return null;
+    return this.sanitize(cred as unknown as ICredential & { userId: string });
   }
 }
 

@@ -1,16 +1,17 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { param, query, validationResult } from 'express-validator';
 import { Build } from '../models/Build';
 import { createPagination, paginate } from '../middleware/pagination';
 import { dbIndex } from '../config/databaseIndex';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const validationResultHandler = (req: Request, res: Response, next: Function): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
+    res.status(400).json({ success: false, error: errors.array()[0].msg });
+    return;
   }
   next();
 };
@@ -26,9 +27,10 @@ router.get('/', createPagination(20, 50), [
     status: req.query.status as string
   };
   const allBuilds = Build.findAll(filters);
-  const { offset, limit } = (req as Record<string, { offset: number; limit: number }>).pagination;
+  const pagination = (req as unknown as { pagination: { offset: number; limit: number; page: number } }).pagination;
+  const { offset, limit } = pagination;
   const paginatedBuilds = allBuilds.slice(offset, offset + limit);
-  const result = paginate(paginatedBuilds, allBuilds.length, (req as Record<string, { page: number; limit: number; offset: number }>).pagination);
+  const result = paginate(paginatedBuilds, allBuilds.length, pagination);
   res.json({ success: true, ...result });
 });
 

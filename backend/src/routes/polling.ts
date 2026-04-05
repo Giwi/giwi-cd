@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import PollingService from '../services/PollingService';
 import { sendError } from '../middleware/errorHandler';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 router.post('/check/:pipelineId', (req: Request, res: Response) => {
   const pollingService = req.app.get('pollingService');
@@ -15,8 +15,8 @@ router.post('/check/:pipelineId', (req: Request, res: Response) => {
     .then(() => {
       res.json({ success: true, message: 'Pipeline checked and build triggered if needed' });
     })
-    .catch(err => {
-      sendError(res, 400, (err as Error).message);
+    .catch((err: Error) => {
+      sendError(res, 400, err.message);
     });
 });
 
@@ -30,8 +30,8 @@ router.post('/check-all', (req: Request, res: Response) => {
     .then(() => {
       res.json({ success: true, message: 'All pipelines checked' });
     })
-    .catch(err => {
-      sendError(res, 500, (err as Error).message);
+    .catch((err: Error) => {
+      sendError(res, 500, err.message);
     });
 });
 

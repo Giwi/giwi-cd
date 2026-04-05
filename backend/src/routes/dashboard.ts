@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { Pipeline } from '../models/Pipeline';
 import { Build } from '../models/Build';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 router.get('/', (req: Request, res: Response) => {
   const pipelines = Pipeline.findAll();

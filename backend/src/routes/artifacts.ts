@@ -1,17 +1,18 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { param, query, validationResult } from 'express-validator';
 import ArtifactStorage from '../services/ArtifactStorage';
 import { authenticate } from '../middleware/auth';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const artifactStorage = new ArtifactStorage();
 
 const validate = (req: Request, res: Response, next: Function): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
+    res.status(400).json({ success: false, error: errors.array()[0].msg });
+    return;
   }
   next();
 };
@@ -23,7 +24,7 @@ router.post('/', authenticate, [
   const { buildId } = req.params;
   const { content, filename, pipelineId } = req.body;
 
-  if (!content && !(req as Record<string, unknown>).file) {
+  if (!content && !(req as unknown as Record<string, unknown>).file) {
     return res.status(400).json({ success: false, error: 'Content or file is required' });
   }
 
@@ -40,7 +41,7 @@ router.post('/', authenticate, [
     });
   }
 
-  const file = (req as Record<string, { originalname: string; path: string }>).file;
+  const file = (req as unknown as Record<string, { originalname: string; path: string }>).file;
   if (file) {
     files.push({
       name: file.originalname,

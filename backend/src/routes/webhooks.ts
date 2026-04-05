@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { Pipeline } from '../models/Pipeline';
 import { Build } from '../models/Build';
 import { RateLimiter } from '../middleware/rateLimiter';
 import { sendError } from '../middleware/errorHandler';
 import type { Pipeline as IPipeline, Build as IBuild } from '../types/index';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const webhookLimiter = new RateLimiter({
   windowMs: 60000,
@@ -42,13 +42,13 @@ router.get('/webhook/:pipelineId', (req: Request, res: Response) => {
     pipelineId: pipeline.id,
     pipelineName: pipeline.name,
     branch: pipeline.branch || 'main',
-    commit: null,
+    commit: undefined,
     commitMessage: 'Manual trigger via webhook',
     triggeredBy: 'webhook'
   });
 
-  executor.execute(build, pipeline).catch(err => {
-    console.error('[Webhook] Build execution error:', (err as Error).message);
+  executor.execute(build, pipeline).catch((err: Error) => {
+    console.error('[Webhook] Build execution error:', err.message);
   });
 
   res.json({
@@ -105,13 +105,13 @@ router.post('/webhook/:pipelineId', (req: Request, res: Response) => {
     pipelineId: pipeline.id,
     pipelineName: pipeline.name,
     branch: branch || pipeline.branch,
-    commit: commit,
-    commitMessage: commitMessage,
+    commit: commit || undefined,
+    commitMessage: commitMessage || undefined,
     triggeredBy: triggeredBy
   });
 
-  executor.execute(build, pipeline).catch(err => {
-    console.error('[Webhook] Build execution error:', (err as Error).message);
+  executor.execute(build, pipeline).catch((err: Error) => {
+    console.error('[Webhook] Build execution error:', err.message);
   });
 
   res.status(202).json({
@@ -123,9 +123,10 @@ router.post('/webhook/:pipelineId', (req: Request, res: Response) => {
 
 router.post('/webhook', (req: Request, res: Response) => {
   const payload = req.body as Record<string, unknown>;
+  const repoLink = (payload.repository as Record<string, unknown>)?.links as Record<string, unknown> | undefined;
   const repoUrl = (payload.repository as Record<string, unknown>)?.url as string ||
                   (payload.repository as Record<string, unknown>)?.git_http_url as string ||
-                  ((payload.repository as Record<string, unknown>)?.links as Record<string, unknown>)?.html?.href as string ||
+                  (repoLink?.html as Record<string, unknown>)?.href as string ||
                   (payload.project as Record<string, unknown>)?.web_url as string ||
                   req.headers['x-repo-url'] as string;
 
@@ -185,13 +186,13 @@ router.post('/webhook', (req: Request, res: Response) => {
       pipelineId: pipeline.id,
       pipelineName: pipeline.name,
       branch: triggerBranch,
-      commit: commit,
-      commitMessage: commitMessage,
+      commit: commit || undefined,
+      commitMessage: commitMessage || undefined,
       triggeredBy: 'webhook'
     });
 
-    executor.execute(build, pipeline).catch(err => {
-      console.error('[Webhook] Build execution error:', (err as Error).message);
+    executor.execute(build, pipeline).catch((err: Error) => {
+      console.error('[Webhook] Build execution error:', err.message);
     });
 
     triggeredBuilds.push({

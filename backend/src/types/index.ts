@@ -95,9 +95,9 @@ export interface Build {
   status: 'pending' | 'running' | 'success' | 'failed' | 'error' | 'cancelled';
   logs: LogEntry[];
   stages: Stage[];
-  startedAt?: string;
-  finishedAt?: string;
-  duration?: number;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  duration?: number | null;
   createdAt: string;
   updatedAt: string;
 }

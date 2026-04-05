@@ -13,6 +13,7 @@ interface PipelineData {
   environment?: string[];
   keepBuilds?: number;
   artifactPaths?: string[];
+  enabled?: boolean;
 }
 
 export class Pipeline {
@@ -23,32 +24,32 @@ export class Pipeline {
       name: data.name,
       description: data.description || '',
       repositoryUrl: data.repositoryUrl || '',
-      credentialId: data.credentialId || null,
+      credentialId: data.credentialId || undefined,
       branch: data.branch || 'main',
       stages: data.stages || [],
-      triggers: data.triggers || { manual: true, push: false, schedule: null },
+      triggers: data.triggers || { manual: true, push: false, schedule: undefined },
       environment: data.environment || [],
       enabled: true,
       status: 'inactive',
-      lastBuildAt: null,
-      lastBuildStatus: null,
-      lastCommit: null,
+      lastBuildAt: undefined,
+      lastBuildStatus: undefined,
+      lastCommit: undefined,
       pollingInterval: 60,
       keepBuilds: data.keepBuilds || 10,
       artifactPaths: data.artifactPaths || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    db.get('pipelines').push(pipeline).write();
+    db.get('pipelines').push(pipeline as unknown as Record<string, unknown>).write();
     return pipeline;
   }
 
   static findAll(): IPipeline[] {
-    return db.get('pipelines').value();
+    return db.get('pipelines').value() as IPipeline[];
   }
 
   static findById(id: string): IPipeline | undefined {
-    return db.get('pipelines').find({ id }).value();
+    return db.get('pipelines').find({ id }).value() as IPipeline | undefined;
   }
 
   static update(id: string, data: Partial<PipelineData>): IPipeline | undefined {
@@ -81,11 +82,10 @@ export class Pipeline {
   }
 
   static getPushTriggerPipelines(): IPipeline[] {
-    return db.get('pipelines').filter((p: Record<string, unknown>) =>
-      (p as IPipeline).enabled &&
-      (p as IPipeline).triggers?.push &&
-      (p as IPipeline).repositoryUrl
-    ).value() as IPipeline[];
+    return db.get('pipelines').filter((p: Record<string, unknown>) => {
+      const pipeline = p as unknown as IPipeline;
+      return !!(pipeline.enabled && pipeline.triggers?.push && pipeline.repositoryUrl);
+    }).value() as unknown as IPipeline[];
   }
 }
 

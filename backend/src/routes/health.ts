@@ -1,11 +1,11 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { db } from '../config/database';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 function getDiskUsage(dir: string): { total: number; used: number; free: number; usagePercent: number } | null {
   try {

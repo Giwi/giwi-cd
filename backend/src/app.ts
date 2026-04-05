@@ -1,4 +1,4 @@
-import express, { type Request, type Response, type NextFunction } from 'express';
+import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -24,7 +24,7 @@ import healthRoutes from './routes/health';
 import pollingRoutes from './routes/polling';
 import artifactRoutes from './routes/artifacts';
 
-const app = express();
+const app: Application = express();
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({

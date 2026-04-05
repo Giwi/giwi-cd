@@ -21,7 +21,7 @@ describe('Credential Model', () => {
       expect(cred.privateKey).toBe('');
       expect(cred.passphrase).toBe('');
       expect(cred.description).toBe('');
-      expect(cred.provider).toBeNull();
+      expect(cred.provider).toBeUndefined();
     });
 
     it('should accept custom values', () => {

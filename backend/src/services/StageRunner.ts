@@ -53,7 +53,7 @@ class StageRunner {
   }
 
   private async _executeCommand(buildId: string, step: Step, pipeline: IPipeline, workDir: string, emit: EmitFn): Promise<boolean> {
-    const command = this._interpolateCredentials(step.command, pipeline);
+    const command = this._interpolateCredentials(step.command || '', pipeline);
     const maskedCommand = this.commandExecutor.maskCredentials(command);
     emit(buildId, 'info', `  ▶ Step: ${step.name || maskedCommand}`);
 

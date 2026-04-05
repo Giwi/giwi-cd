@@ -72,7 +72,7 @@ const retry = async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promi
     retryableErrors: customErrors
   } = { ...DEFAULT_OPTIONS, ...options };
 
-  let lastError: Error;
+  let lastError: Error = new Error('No attempts made');
   let attempt = 0;
 
   while (attempt < maxAttempts) {
@@ -107,7 +107,7 @@ const retry = async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promi
 const retrySync = <T>(fn: () => T, options: RetryOptions = {}): T => {
   const { maxAttempts, delayMs, backoffMultiplier, maxDelayMs, onRetry, retryableErrors: customErrors } = { ...DEFAULT_OPTIONS, ...options };
 
-  let lastError: Error;
+  let lastError: Error = new Error('No attempts made');
   let attempt = 0;
 
   while (attempt < maxAttempts) {

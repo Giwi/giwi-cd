@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { User } from '../models/User';
 import { db } from '../config/database';
@@ -7,7 +7,7 @@ import { authenticate, requireRole, generateToken } from '../middleware/auth';
 import { sendError } from '../middleware/errorHandler';
 import logger from '../config/logger';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const validate = (req: Request, res: Response, next: Function): void => {
   const errors = validationResult(req);
@@ -41,25 +41,25 @@ function pushLog(level: string, msg: unknown): void {
   if (logBuffer.length > 1000) logBuffer = logBuffer.slice(-500);
 }
 
-logger.info = (msg: unknown, ...args: unknown[]) => {
+logger.info = ((msg: unknown, ...args: unknown[]) => {
   originalLogger.info(msg, ...args);
   pushLog('info', msg);
-};
+}) as typeof logger.info;
 
-logger.warn = (msg: unknown, ...args: unknown[]) => {
+logger.warn = ((msg: unknown, ...args: unknown[]) => {
   originalLogger.warn(msg, ...args);
   pushLog('warn', msg);
-};
+}) as typeof logger.warn;
 
-logger.error = (msg: unknown, ...args: unknown[]) => {
+logger.error = ((msg: unknown, ...args: unknown[]) => {
   originalLogger.error(msg, ...args);
   pushLog('error', msg);
-};
+}) as typeof logger.error;
 
-logger.debug = (msg: unknown, ...args: unknown[]) => {
+logger.debug = ((msg: unknown, ...args: unknown[]) => {
   originalLogger.debug(msg, ...args);
   pushLog('debug', msg);
-};
+}) as typeof logger.debug;
 
 router.use(authenticate);
 router.use(requireRole('admin'));
@@ -174,8 +174,8 @@ router.delete('/users/:id', [
       return sendError(res, 404, 'User not found');
     }
 
-    const reqUser = (req as Record<string, { id: string }>).user;
-    if (user.id === reqUser.id) {
+    const reqUser = (req as unknown as Record<string, { id: string }>).user;
+    if (user.id === reqUser?.id) {
       return sendError(res, 400, 'Cannot delete your own account');
     }
 

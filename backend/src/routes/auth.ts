@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { User } from '../models/User';
 import { db } from '../config/database';
 import { authenticate, generateToken } from '../middleware/auth';
 import { sendError } from '../middleware/errorHandler';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const validate = (req: Request, res: Response, next: Function): void => {
   const errors = validationResult(req);
@@ -76,7 +76,7 @@ router.post('/login', [
 });
 
 router.get('/me', authenticate, (req: Request, res: Response) => {
-  res.json({ user: (req as Record<string, unknown>).user });
+  res.json({ user: (req as unknown as Record<string, unknown>).user });
 });
 
 router.post('/logout', (_req: Request, res: Response) => {
@@ -89,7 +89,7 @@ router.put('/me', authenticate, [
 ], validate, async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
-    const user = await User.update((req as Record<string, string>).userId, { username, password });
+    const user = await User.update((req as unknown as Record<string, string>).userId, { username, password });
     res.json({ user });
   } catch (error) {
     sendError(res, 500, 'Update failed');
@@ -103,7 +103,7 @@ router.put('/password', authenticate, [
   try {
     const { currentPassword, newPassword } = req.body;
 
-    const user = User.findByEmail((req as Record<string, { email: string }>).user.email);
+    const user = User.findByEmail((req as unknown as Record<string, { email: string }>).user?.email);
     if (!user) {
       return sendError(res, 404, 'User not found');
     }
@@ -112,7 +112,7 @@ router.put('/password', authenticate, [
       return sendError(res, 401, 'Current password is incorrect');
     }
 
-    await User.update((req as Record<string, string>).userId, { password: newPassword });
+    await User.update((req as unknown as Record<string, string>).userId, { password: newPassword });
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     sendError(res, 500, 'Password update failed');

@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import type { QueryChain, FindChain, FilterChain } from '../types/lowdb';
 
 const dbDir = path.join(__dirname, '../../data');
 if (!fs.existsSync(dbDir)) {
@@ -176,8 +177,8 @@ class CollectionChain implements QueryChain {
           for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const order = orders[i] || 'asc';
-            const aVal = a[key];
-            const bVal = b[key];
+            const aVal = a[key] as string | number;
+            const bVal = b[key] as string | number;
             if (aVal < bVal) return order === 'asc' ? -1 : 1;
             if (aVal > bVal) return order === 'asc' ? 1 : -1;
           }
@@ -197,8 +198,8 @@ class CollectionChain implements QueryChain {
       sortBy(key: string): { reverse(): { value(): unknown[] }; value(): unknown[] } {
         const items = [...self.getItems().filter(pred)];
         items.sort((a, b) => {
-          const aVal = a[key];
-          const bVal = b[key];
+          const aVal = a[key] as string | number;
+          const bVal = b[key] as string | number;
           if (aVal < bVal) return -1;
           if (aVal > bVal) return 1;
           return 0;
@@ -242,8 +243,8 @@ class CollectionChain implements QueryChain {
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
         const order = orders[i] || 'asc';
-        const aVal = a[key];
-        const bVal = b[key];
+        const aVal = a[key] as string | number;
+        const bVal = b[key] as string | number;
         if (aVal < bVal) return order === 'asc' ? -1 : 1;
         if (aVal > bVal) return order === 'asc' ? 1 : -1;
       }
@@ -287,7 +288,13 @@ const db = {
         return { value: () => undefined, assign: () => this, remove: () => this };
       },
       filter(): FilterChain {
-        return { value: () => [], assign: () => this };
+        return { 
+          value: () => [], 
+          assign: () => this,
+          orderBy: () => ({ reverse: () => ({ value: () => [] }), value: () => [], take: () => ({ value: () => [] }) }),
+          sortBy: () => ({ reverse: () => ({ value: () => [] }), value: () => [] }),
+          take: () => ({ value: () => [] })
+        };
       },
       remove(): QueryChain { return this; },
       assign(): QueryChain { return this; },
@@ -337,7 +344,13 @@ const db = {
         return { value: () => undefined, assign: () => this, remove: () => this };
       },
       filter(): FilterChain {
-        return { value: () => [], assign: () => this };
+        return { 
+          value: () => [], 
+          assign: () => this,
+          orderBy: () => ({ reverse: () => ({ value: () => [] }), value: () => [], take: () => ({ value: () => [] }) }),
+          sortBy: () => ({ reverse: () => ({ value: () => [] }), value: () => [] }),
+          take: () => ({ value: () => [] })
+        };
       },
       remove(): QueryChain { return this; },
       assign(): QueryChain { return this; },

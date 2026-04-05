@@ -201,8 +201,8 @@ class BuildExecutor extends EventEmitter {
     Build.update(buildId, {
       stages: stages.map((s, idx) => ({
         ...s,
-        status: idx < stageResults.length ? stageResults[idx] :
-                idx === currentIndex ? 'running' : 'pending'
+        status: (idx < stageResults.length ? stageResults[idx] :
+                idx === currentIndex ? 'running' : 'pending') as Stage['status']
       }))
     });
   }
@@ -213,7 +213,7 @@ class BuildExecutor extends EventEmitter {
     this._emit(build.id, allSuccess ? 'info' : 'error',
       `\n${allSuccess ? '🎉 Build SUCCESS' : '💥 Build FAILED'} - Duration: ${duration}`);
 
-    if (allSuccess && pipeline.artifactPaths?.length > 0 && workDir) {
+    if (allSuccess && pipeline.artifactPaths && pipeline.artifactPaths.length > 0 && workDir) {
       await this._collectArtifacts(build, pipeline, workDir);
     }
 
@@ -359,7 +359,7 @@ class BuildExecutor extends EventEmitter {
   }
 
   private _emit(buildId: string, level: string, message: string): void {
-    const log = Build.addLog(buildId, { level, message });
+    const log = Build.addLog(buildId, { level: level as 'info' | 'warn' | 'error' | 'success', message });
     if (log) {
       this.wsManager.broadcast({ type: 'build:log', buildId, log });
     }
@@ -369,7 +369,9 @@ class BuildExecutor extends EventEmitter {
     const build = Build.findById(buildId);
     if (!build?.startedAt) return 'N/A';
     const endTime = build.finishedAt || new Date().toISOString();
-    const seconds = Math.floor((new Date(endTime) - new Date(build.startedAt)) / 1000);
+    const startMs = new Date(build.startedAt).getTime();
+    const endMs = new Date(endTime).getTime();
+    const seconds = Math.floor((endMs - startMs) / 1000);
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;

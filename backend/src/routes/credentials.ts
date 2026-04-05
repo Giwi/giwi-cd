@@ -1,22 +1,23 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { Credential } from '../models/Credential';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { sanitizeCredential } from '../utils/sanitize';
 import NotificationService from '../services/NotificationService';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const validate = (req: Request, res: Response, next: Function): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
+    res.status(400).json({ success: false, error: errors.array()[0].msg });
+    return;
   }
   next();
 };
 
-const VALID_CREDENTIAL_TYPES = ['username-password', 'token', 'ssh-key', 'telegram', 'slack', 'teams', 'mail'];
+const VALID_CREDENTIAL_TYPES = ['username-password', 'token', 'ssh-key', 'telegram', 'slack', 'teams', 'mail'] as const;
 
 router.get('/', (_req: Request, res: Response) => {
   const credentials = Credential.findAll();

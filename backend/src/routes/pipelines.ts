@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import express from 'express';
+import express, { type Router } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { Pipeline } from '../models/Pipeline';
 import { Build } from '../models/Build';
@@ -10,7 +10,7 @@ import { createPagination, paginate } from '../middleware/pagination';
 import { sanitizePipeline } from '../utils/sanitize';
 import type { Pipeline as IPipeline } from '../types/index';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 const validateRepoUrl = (value: unknown): boolean => {
   if (!value || typeof value !== 'string') return true;
@@ -25,7 +25,8 @@ const validateRepoUrl = (value: unknown): boolean => {
 const validate = (req: Request, res: Response, next: Function): void => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ success: false, error: errors.array()[0].msg });
+    res.status(400).json({ success: false, error: errors.array()[0].msg });
+    return;
   }
   next();
 };
@@ -35,8 +36,8 @@ function enrichWithCredential(pipeline: IPipeline | undefined): IPipeline | null
   if (pipeline.credentialId) {
     const cred = Credential.findById(pipeline.credentialId);
     if (cred) {
-      (pipeline as Record<string, unknown>).credentialName = cred.name;
-      (pipeline as Record<string, unknown>).credentialType = cred.type;
+      (pipeline as unknown as Record<string, unknown>).credentialName = cred.name;
+      (pipeline as unknown as Record<string, unknown>).credentialType = cred.type;
     }
   }
   return pipeline;
@@ -44,7 +45,8 @@ function enrichWithCredential(pipeline: IPipeline | undefined): IPipeline | null
 
 router.get('/', createPagination(20, 50), (req: Request, res: Response) => {
   const allPipelines = Pipeline.findAll().map(p => enrichWithCredential(p));
-  const result = paginate(allPipelines, allPipelines.length, (req as Record<string, { page: number; limit: number; offset: number }>).pagination);
+  const pagination = (req as unknown as Record<string, { page: number; limit: number; offset: number }>).pagination;
+  const result = paginate(allPipelines, allPipelines.length, pagination);
   res.json({ success: true, ...result });
 });
 
@@ -70,9 +72,20 @@ router.post('/', [
   body('errorNotification.provider').optional().isIn(['telegram', 'slack', 'teams', 'mail']).withMessage('Invalid notification provider')
 ], validate, (req: Request, res: Response) => {
   const sanitized = sanitizePipeline(req.body);
-  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds, artifactPaths, errorNotification } = sanitized as Record<string, unknown>;
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds, artifactPaths } = sanitized as Record<string, unknown>;
 
-  const pipeline = Pipeline.create({ name: name as string, description: description as string, repositoryUrl: repositoryUrl as string, credentialId: credentialId as string, branch: branch as string, stages: stages as never[], triggers: triggers as never, environment: environment as never[], keepBuilds: keepBuilds as number, artifactPaths: artifactPaths as string[], errorNotification: errorNotification as never });
+  const pipeline = Pipeline.create({ 
+    name: name as string, 
+    description: description as string, 
+    repositoryUrl: repositoryUrl as string, 
+    credentialId: credentialId as string, 
+    branch: branch as string, 
+    stages: stages as never[], 
+    triggers: triggers as never, 
+    environment: environment as never[], 
+    keepBuilds: keepBuilds as number, 
+    artifactPaths: artifactPaths as string[]
+  });
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline created successfully' });
 });
 
@@ -88,7 +101,7 @@ router.post('/import', [
     name: name as string,
     description: (description as string) || '',
     repositoryUrl: (repositoryUrl as string) || '',
-    credentialId: (credentialId as string) || null,
+    credentialId: (credentialId as string) || undefined,
     branch: (branch as string) || 'main',
     stages: (stages as never[]) || [],
     triggers: (triggers as never) || [],
@@ -139,9 +152,10 @@ router.get('/:id/builds', createPagination(20, 50), [
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
   const allBuilds = Build.findAll({ pipelineId: req.params.id });
-  const { offset, limit } = (req as Record<string, { offset: number; limit: number }>).pagination;
+  const pagination = (req as unknown as { pagination: { offset: number; limit: number; page: number } }).pagination;
+  const { offset, limit } = pagination;
   const paginatedBuilds = allBuilds.slice(offset, offset + limit);
-  const result = paginate(paginatedBuilds, allBuilds.length, (req as Record<string, { page: number; limit: number; offset: number }>).pagination);
+  const result = paginate(paginatedBuilds, allBuilds.length, pagination);
   res.json({ success: true, ...result });
 });
 
@@ -158,9 +172,9 @@ router.post('/:id/trigger', triggerLimiter, [
     pipelineId: pipeline.id,
     pipelineName: pipeline.name,
     branch: req.body.branch || pipeline.branch,
-    commit: req.body.commit || null,
+    commit: req.body.commit || undefined,
     commitMessage: req.body.commitMessage || 'Manual trigger',
-    triggeredBy: (req as Record<string, { username?: string }>).user?.username || req.body.triggeredBy || 'manual',
+    triggeredBy: (req as unknown as Record<string, { username?: string }>).user?.username || req.body.triggeredBy || 'manual',
     stages: (pipeline.stages || []).map(s => ({ ...s, status: 'pending' }))
   });
 
@@ -171,8 +185,8 @@ router.post('/:id/trigger', triggerLimiter, [
 
   setImmediate(() => {
     const executor = req.app.get('buildExecutor');
-    executor.execute(build, pipeline).catch(err => {
-      console.error('[BUILD] Execution error:', (err as Error).message);
+    executor.execute(build, pipeline).catch((err: Error) => {
+      console.error('[BUILD] Execution error:', err.message);
     });
   });
 

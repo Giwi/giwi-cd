@@ -17,15 +17,15 @@ describe('Build Model', () => {
       expect(build.pipelineId).toBe('pipeline-1');
       expect(build.pipelineName).toBe('Test Pipeline');
       expect(build.branch).toBe('main');
-      expect(build.commit).toBeNull();
+      expect(build.commit).toBeUndefined();
       expect(build.commitMessage).toBe('');
       expect(build.triggeredBy).toBe('manual');
       expect(build.status).toBe('pending');
       expect(build.logs).toEqual([]);
       expect(build.stages).toEqual([]);
-      expect(build.startedAt).toBeNull();
-      expect(build.finishedAt).toBeNull();
-      expect(build.duration).toBeNull();
+      expect(build.startedAt).toBeUndefined();
+      expect(build.finishedAt).toBeUndefined();
+      expect(build.duration).toBeUndefined();
       expect(build.number).toBe(1);
     });
 

@@ -24,19 +24,19 @@ const createRateLimiter = (options: RateLimiterOptions = {}): ReturnType<typeof 
 const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  message: 'Too many login attempts, please try again in 15 minutes'
+  message: { error: 'Too many login attempts, please try again in 15 minutes' }
 });
 
 const apiLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 200,
-  message: 'Rate limit exceeded'
+  message: { error: 'Rate limit exceeded' }
 });
 
 const triggerLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 20,
-  message: 'Too many build triggers, please wait'
+  message: { error: 'Too many build triggers, please wait' }
 });
 
 export {
