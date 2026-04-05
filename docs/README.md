@@ -507,11 +507,11 @@ npm run test:watch    # Watch mode
 npm run test:coverage # Coverage report
 ```
 
-### Backend Architecture
+### Backend
 
 ```
-Express.js
-├── Config (validateEnv, config module)
+Express.js + TypeScript
+├── Config (validateEnv, config module, database)
 ├── Middleware (auth, rate-limit, csrf, logger, pagination, asyncHandler, errorHandler)
 ├── Routes (health, auth, pipelines, builds, credentials, admin, webhooks, polling)
 ├── Models (User, Pipeline, Build, Credential)
@@ -522,7 +522,8 @@ Express.js
     ├── GitService - Git clone/pull operations
     ├── NotificationService - Telegram, Slack, Teams, Email
     ├── PollingService - Git repository polling
-    └── WebSocketManager - Real-time communication
+    ├── WebSocketManager - Real-time communication
+    └── CredentialCache - Credential caching
 ```
 
 ### Frontend

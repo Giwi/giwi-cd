@@ -28,10 +28,38 @@
 - **Responsive Design** - Works on desktop and mobile
 - **API Pagination** - paginated list endpoints
 - **API Versioning** - `/api/v1/` prefix for backward compatibility
-- **Health Checks** - Kubernetes-ready liveness/readiness probes
-- **TypeScript Support** - Type-safe backend with optional compilation
+- **TypeScript** - Full type-safe backend with strict compilation
 - **Comprehensive Tests** - Jest test suite with coverage
+- **Docker** - Multi-platform image for amd64/arm64
 - **Graceful Shutdown** - Wait for builds to complete before stopping
+
+## CI/CD Pipeline
+
+The project includes GitHub Actions workflows for automated testing and Docker image building.
+
+```bash
+# Push a tag to trigger a new release build
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+This will:
+1. Run backend and frontend tests
+2. Build and push Docker image to GHCR
+
+## Docker
+
+```bash
+# Pull the latest image from GHCR
+docker pull ghcr.io/giwi/giwi-cd:latest
+
+# Run the container
+docker run -d \
+  --name giwicd \
+  -p 3000:3000 \
+  -p 4200:4200 \
+  -e JWT_SECRET=your-secret \
+  ghcr.io/giwi/giwi-cd:latest
+```
 
 ## Quick Start
 
@@ -175,8 +203,8 @@ giwicd/
 
 | Layer | Technology |
 |-------|------------|
-| Backend | Node.js, Express |
-| Database | LowDB (JSON) |
+| Backend | Node.js, Express, TypeScript |
+| Database | SQLite (better-sqlite3) |
 | Auth | JWT, bcrypt |
 | Real-time | WebSocket |
 | Validation | express-validator |
