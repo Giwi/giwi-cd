@@ -53,10 +53,6 @@ function tableFor(collection: string): string {
   return collection;
 }
 
-function rowToRecord(row: { data: string }): Record<string, unknown> {
-  return JSON.parse(row.data);
-}
-
 class CollectionChain implements QueryChain {
   private collection: string;
   private _items: Record<string, unknown>[] | null = null;

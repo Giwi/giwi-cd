@@ -23,3 +23,9 @@ Dockerfile
 docs
 scripts
 data
+backend/node_modules
+frontend/node_modules
+backend/dist
+frontend/dist
+backend/__tests__
+backend/coverage

@@ -9,7 +9,9 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch --detectOpenHandles",
-    "test:coverage": "jest --coverage --detectOpenHandles"
+    "test:coverage": "jest --coverage --detectOpenHandles",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "keywords": [
     "cicd",
@@ -56,6 +58,9 @@
     "@types/uuid": "^10.0.0",
     "@types/winston": "^2.4.4",
     "@types/ws": "^8.5.12",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.1",
     "jest": "^30.3.0",
     "nodemon": "^3.1.7",
     "supertest": "^7.2.2",
