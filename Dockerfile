@@ -18,25 +18,20 @@ RUN npm ci
 COPY backend/ ./
 RUN npm run build
 
-# ── Stage 3: Install backend production deps ─────────────────────
-FROM --platform=$BUILDPLATFORM node:20-alpine AS backend-prod
-WORKDIR /build/backend
-COPY backend/package*.json ./
-RUN npm ci --only=production
-
-# ── Stage 4: Runtime ─────────────────────────────────────────────
+# ── Stage 3: Runtime ─────────────────────────────────────────────
 FROM node:20-alpine
 
-RUN apk add --no-cache git tini su-exec
+RUN apk add --no-cache git tini su-exec python3 make g++
 
 RUN addgroup -S giwicd && adduser -S -G giwicd giwicd
 
 WORKDIR /app
 
-COPY --from=backend-prod /build/backend/node_modules ./node_modules
+COPY backend/package*.json ./
+RUN npm ci --only=production
+
 COPY --from=backend-builder /build/backend/dist ./dist
 COPY --from=frontend-builder /build/frontend/dist/frontend/browser/ ./frontend/dist/
-COPY backend/package.json ./
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
