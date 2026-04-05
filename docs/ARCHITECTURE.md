@@ -136,6 +136,76 @@ Pipeline Trigger
 ## Database Schema
 
 ```
+SQLite Tables:
+
+users
+├── id          (TEXT - UUID)
+├── email       (TEXT - UNIQUE)
+├── username    (TEXT)
+├── password    (TEXT - bcrypt hash)
+├── role        (TEXT - admin/contributor)
+├── createdAt   (TEXT - ISO timestamp)
+└── updatedAt   (TEXT - ISO timestamp)
+
+pipelines
+├── id              (TEXT - UUID)
+├── userId          (TEXT)
+├── name            (TEXT)
+├── description     (TEXT)
+├── repositoryUrl   (TEXT)
+├── credentialId    (TEXT)
+├── branch           (TEXT)
+├── triggers        (TEXT - JSON)
+├── stages          (TEXT - JSON)
+├── environment     (TEXT - JSON)
+├── artifactPaths   (TEXT - JSON)
+├── enabled         (INTEGER - boolean)
+├── status          (TEXT)
+├── lastBuildAt     (TEXT)
+├── lastBuildStatus  (TEXT)
+├── lastCommit       (TEXT)
+├── pollingInterval  (INTEGER)
+├── keepBuilds      (INTEGER)
+├── createdAt        (TEXT)
+└── updatedAt        (TEXT)
+
+builds
+├── id           (TEXT - UUID)
+├── pipelineId   (TEXT)
+├── pipelineName (TEXT)
+├── number       (INTEGER)
+├── status       (TEXT)
+├── branch       (TEXT)
+├── commit       (TEXT)
+├── commitMessage (TEXT)
+├── triggeredBy  (TEXT)
+├── startedAt    (TEXT)
+├── finishedAt   (TEXT)
+├── duration     (INTEGER)
+├── logs         (TEXT - JSON)
+├── stages       (TEXT - JSON)
+├── createdAt    (TEXT)
+└── updatedAt    (TEXT)
+
+credentials
+├── id          (TEXT - UUID)
+├── userId      (TEXT)
+├── name        (TEXT)
+├── type        (TEXT)
+├── username    (TEXT)
+├── password    (TEXT)
+├── token       (TEXT)
+├── privateKey  (TEXT)
+├── passphrase  (TEXT)
+├── description (TEXT)
+├── provider    (TEXT)
+├── createdAt   (TEXT)
+└── updatedAt   (TEXT)
+
+settings
+├── key    (TEXT - PRIMARY KEY)
+└── value  (TEXT - JSON)
+```
 users
 ├── id          (UUID)
 ├── email
@@ -229,6 +299,55 @@ build:cancelled - Build cancelled
 ## Technology Stack
 
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Frontend                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Angular 20 (Standalone Components)                            │
+│  TypeScript                                                     │
+│  Bootstrap 5                                                    │
+│  Bootstrap Icons                                                │
+│  SCSS + CSS Variables                                           │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                         Backend                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Node.js 18+                                                    │
+│  Express.js                                                     │
+│  TypeScript (strict mode)                                       │
+│  SQLite (better-sqlite3)                                        │
+│  JWT Auth (jsonwebtoken)                                        │
+│  bcrypt                                                         │
+│  WebSocket (ws)                                                 │
+│  Git operations (simple-git)                                    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        Middleware                                │
+├─────────────────────────────────────────────────────────────────┤
+│  auth.js          - JWT authentication + RBAC                   │
+│  rateLimit.js     - Rate limiting                                │
+│  csrf.js          - CSRF protection                             │
+│  logger.js        - Structured JSON logging                     │
+│  pagination.js    - API pagination                              │
+│  asyncHandler.js  - Async error handling                        │
+│  errorHandler.js  - Global error handling                       │
+│  authGuard.js     - Role-based route guards                    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                         Services                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  BuildExecutor      - Build orchestration & queue management    │
+│  StageRunner        - Stage/step execution                      │
+│  CommandExecutor    - Shell command execution                  │
+│  GitService         - Git clone/pull operations                 │
+│  NotificationService - Telegram, Slack, Teams, Email          │
+│  PollingService     - Git repository polling                   │
+│  WebSocketManager    - Real-time communication                  │
+│  ArtifactStorage     - Build artifact storage                  │
+│  CredentialCache     - Credential caching                       │
+└─────────────────────────────────────────────────────────────────┘
 Frontend                    Backend
 ───────                   ──────
 Angular 20                 Node.js 18+
