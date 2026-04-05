@@ -21,3 +21,11 @@ This page showcases the GiwiCD user interface.
 ## Builds
 
 ![Builds](images/builds.png)
+
+## Credentials
+
+![Credentials](images/credentials.png)
+
+## Settings
+
+![Settings](images/settings.png)
