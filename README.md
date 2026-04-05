@@ -174,6 +174,10 @@ npm run test:coverage # Coverage report
 
 Detailed documentation is available in [docs/README.md](docs/README.md).
 
+## Screenshots
+
+See the application in action in [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
+
 ## Project Structure
 
 ```
