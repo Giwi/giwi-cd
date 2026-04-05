@@ -9,10 +9,11 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": false,
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "typeRoots": ["./src/types", "./node_modules/@types"],
     "noImplicitAny": true,
     "strictNullChecks": true
