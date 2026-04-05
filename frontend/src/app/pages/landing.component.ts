@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-landing',
@@ -734,7 +735,12 @@ import { Title, Meta } from '@angular/platform-browser';
   `]
 })
 export class LandingComponent {
-  constructor(private title: Title, private meta: Meta) {
+  constructor(
+    private title: Title,
+    private meta: Meta,
+    private authService: AuthService,
+    private router: Router
+  ) {
     this.title.setTitle('GiwiCD - Modern CI/CD Engine');
     this.meta.updateTag({ name: 'description', content: 'GiwiCD is a modern, self-hosted CI/CD engine for automated build, test, and deployment workflows. Open source and free to use.' });
     this.meta.updateTag({ name: 'keywords', content: 'CI/CD, continuous integration, continuous deployment, DevOps, automation, build automation, open source, self-hosted' });
@@ -742,5 +748,9 @@ export class LandingComponent {
     this.meta.updateTag({ property: 'og:description', content: 'A modern, self-hosted CI/CD engine for automated build, test, and deployment workflows.' });
     this.meta.updateTag({ name: 'twitter:title', content: 'GiwiCD - Modern CI/CD Engine' });
     this.meta.updateTag({ name: 'twitter:description', content: 'A modern, self-hosted CI/CD engine for automated build, test, and deployment workflows.' });
+
+    if (this.authService.isAuthenticated()) {
+      this.router.navigate(['/dashboard']);
+    }
   }
 }
