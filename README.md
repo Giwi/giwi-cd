@@ -33,19 +33,6 @@
 - **Docker** - Multi-platform image for amd64/arm64
 - **Graceful Shutdown** - Wait for builds to complete before stopping
 
-## CI/CD Pipeline
-
-The project includes GitHub Actions workflows for automated testing and Docker image building.
-
-```bash
-# Push a tag to trigger a new release build
-git tag v1.0.0 && git push origin v1.0.0
-```
-
-This will:
-1. Run backend and frontend tests
-2. Build and push Docker image to GHCR
-
 ## Docker
 
 ```bash
