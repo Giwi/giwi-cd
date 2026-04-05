@@ -176,7 +176,19 @@ Detailed documentation is available in [docs/README.md](docs/README.md).
 
 ## Screenshots
 
-See the application in action in [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
+| Landing | Login |
+|---------|-------|
+| ![Landing](docs/images/landing.png) | ![Login](docs/images/login.png) |
+
+| Dashboard | Pipelines |
+|-----------|-----------|
+| ![Dashboard](docs/images/dashboard.png) | ![Pipelines](docs/images/pipelines.png) |
+
+| Builds | Credentials |
+|--------|-------------|
+| ![Builds](docs/images/builds.png) | ![Credentials](docs/images/credentials.png) |
+
+See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for full descriptions.
 
 ## Project Structure
 
