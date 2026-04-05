@@ -15,10 +15,12 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
-      isolatedModules: true
+      isolatedModules: true,
+      useESM: false
     }]
   },
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^uuid$': require.resolve('uuid')
   }
 };
