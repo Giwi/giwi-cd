@@ -101,7 +101,17 @@ interface NotificationStep {
                   <option [ngValue]="cred.id">{{ cred.name }} ({{ getTypeLabel(cred.type) }})</option>
                 }
               </select>
-              <div class="form-text">Select credentials for private repositories</div>
+              <div class="form-text">Credential used for git checkout</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label mb-0">SSH Deploy Key</label>
+              <select class="form-select" formControlName="sshKeyId">
+                <option [ngValue]="null">No SSH key</option>
+                @for (cred of getSshKeyCredentials(); track cred.id) {
+                  <option [ngValue]="cred.id">{{ cred.name }}</option>
+                }
+              </select>
+              <div class="form-text">SSH key for rsync/SSH deploy steps</div>
             </div>
           </div>
 
@@ -495,6 +505,7 @@ export class PipelineFormComponent implements OnInit {
       description: [''],
       repositoryUrl: [''],
       credentialId: [null],
+      sshKeyId: [null],
       branch: ['main', Validators.required],
       enabled: [true],
       keepBuilds: [10],
@@ -532,6 +543,7 @@ export class PipelineFormComponent implements OnInit {
       description: pipeline.description,
       repositoryUrl: pipeline.repositoryUrl,
       credentialId: pipeline.credentialId || null,
+      sshKeyId: pipeline.sshKeyId || null,
       branch: pipeline.branch,
       enabled: pipeline.enabled,
       keepBuilds: pipeline.keepBuilds || 10,
@@ -890,6 +902,10 @@ export class PipelineFormComponent implements OnInit {
     return (this.credentials() || []).filter(c => !['telegram', 'slack', 'teams', 'mail'].includes(c.type));
   }
 
+  getSshKeyCredentials(): Credential[] {
+    return (this.credentials() || []).filter(c => c.type === 'ssh-key');
+  }
+
   getCredIcon(type: string): string {
     const icons: Record<string, string> = {
       'telegram': 'telegram',
@@ -970,6 +986,10 @@ export class PipelineFormComponent implements OnInit {
 
     if (rawValue.credentialId) {
       data.credentialId = rawValue.credentialId;
+    }
+
+    if (rawValue.sshKeyId) {
+      data.sshKeyId = rawValue.sshKeyId;
     }
 
     if (rawValue.errorNotification?.enabled) {

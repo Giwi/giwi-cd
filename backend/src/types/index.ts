@@ -32,6 +32,7 @@ export interface Pipeline {
   description?: string;
   repositoryUrl?: string;
   credentialId?: string;
+  sshKeyId?: string;
   branch: string;
   stages: Stage[];
   triggers?: {

@@ -7,6 +7,7 @@ interface PipelineData {
   description?: string;
   repositoryUrl?: string;
   credentialId?: string;
+  sshKeyId?: string;
   branch?: string;
   stages?: IPipeline['stages'];
   triggers?: IPipeline['triggers'];
@@ -25,6 +26,7 @@ export class Pipeline {
       description: data.description || '',
       repositoryUrl: data.repositoryUrl || '',
       credentialId: data.credentialId || undefined,
+      sshKeyId: data.sshKeyId || undefined,
       branch: data.branch || 'main',
       stages: data.stages || [],
       triggers: data.triggers || { manual: true, push: false, schedule: undefined },

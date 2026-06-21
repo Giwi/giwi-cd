@@ -123,9 +123,10 @@ class BuildExecutor extends EventEmitter {
   }
 
   private async _setupSshKey(buildId: string, pipeline: IPipeline): Promise<void> {
-    if (!pipeline.credentialId) return;
+    const sshCredId = pipeline.sshKeyId || pipeline.credentialId;
+    if (!sshCredId) return;
 
-    const cred = Credential.getRaw(pipeline.credentialId);
+    const cred = Credential.getRaw(sshCredId);
     if (!cred || cred.type !== 'ssh-key' || !cred.privateKey) return;
 
     const sshDir = path.join(os.homedir(), '.ssh');

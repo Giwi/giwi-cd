@@ -6,6 +6,7 @@ export interface Pipeline {
   credentialId?: string | null;
   credentialName?: string | null;
   credentialType?: string | null;
+  sshKeyId?: string | null;
   branch: string;
   stages: Stage[];
   triggers: {
