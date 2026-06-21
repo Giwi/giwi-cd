@@ -344,7 +344,7 @@ export class App {
   constructor() {
     this.buildMenuItems();
     this.apiService.get<{ version: string }>('/version').subscribe({
-      next: (res) => this.version.set(`v${res.version}`),
+      next: (res) => this.version.set(res.version),
       error: () => this.version.set('')
     });
   }
