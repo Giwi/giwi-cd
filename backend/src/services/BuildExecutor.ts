@@ -129,12 +129,15 @@ class BuildExecutor extends EventEmitter {
         if (step.type === 'ssh-setup' && step.credentialId) {
           const cred = Credential.getRaw(step.credentialId);
           if (cred && cred.type === 'ssh-key' && cred.privateKey) {
+            let keyData = cred.privateKey.replace(/\r\n/g, '\n');
+            if (!keyData.endsWith('\n')) keyData += '\n';
+
             const sshDir = path.join(os.homedir(), '.ssh');
             fs.mkdirSync(sshDir, { recursive: true, mode: 0o700 });
 
             const keyPath = path.join(sshDir, 'id_rsa');
-            fs.writeFileSync(keyPath, cred.privateKey, { mode: 0o600 });
-            this._emit(buildId, 'info', `🔑 SSH key set up: ${cred.name || 'deploy key'}`);
+            fs.writeFileSync(keyPath, keyData, { mode: 0o600 });
+            this._emit(buildId, 'info', `🔑 SSH key set up: ${cred.name || 'deploy key'} (${keyData.length} bytes)`);
           }
         }
       }
