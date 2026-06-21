@@ -2,9 +2,11 @@ import { EventEmitter } from 'events';
 import { Worker } from 'worker_threads';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { Build } from '../models/Build';
 import { Pipeline } from '../models/Pipeline';
-import type { Pipeline as IPipeline, Build as IBuild, Stage, LogEntry } from '../types/index';
+import { Credential } from '../models/Credential';
+import type { Pipeline as IPipeline, Build as IBuild, Stage, LogEntry, Credential as ICredential } from '../types/index';
 
 interface WSMessage {
   type: string;
@@ -115,7 +117,23 @@ class BuildExecutor extends EventEmitter {
       Build.update(build.id, { commitMessage });
     }
 
+    await this._setupSshKey(build.id, pipeline);
+
     return cloneResult.workDir;
+  }
+
+  private async _setupSshKey(buildId: string, pipeline: IPipeline): Promise<void> {
+    if (!pipeline.credentialId) return;
+
+    const cred = Credential.getRaw(pipeline.credentialId);
+    if (!cred || cred.type !== 'ssh-key' || !cred.privateKey) return;
+
+    const sshDir = path.join(os.homedir(), '.ssh');
+    fs.mkdirSync(sshDir, { recursive: true, mode: 0o700 });
+
+    const keyPath = path.join(sshDir, 'id_rsa');
+    fs.writeFileSync(keyPath, cred.privateKey, { mode: 0o600 });
+    this._emit(buildId, 'info', `🔑 SSH key set up for ${cred.name || 'deploy'}`);
   }
 
   private async _executeStages(build: IBuild, pipeline: IPipeline, workDir: string | null): Promise<boolean> {
