@@ -79,11 +79,13 @@ jobs:
         id: tags
         shell: bash
         run: |
+          REPO="${{ github.repository }}"
+          REPO_LOWER="${REPO,,}"
           DELIM="TAGS_EOF"
           echo "tags<<${DELIM}" >> "${GITHUB_OUTPUT}"
           echo '${{ steps.meta.outputs.tags }}' >> "${GITHUB_OUTPUT}"
           if [[ '${{ github.ref }}' == refs/tags/v* ]]; then
-            echo 'ghcr.io/${{ github.repository }}:latest' >> "${GITHUB_OUTPUT}"
+            echo "ghcr.io/${REPO_LOWER}:latest" >> "${GITHUB_OUTPUT}"
           fi
           echo "${DELIM}" >> "${GITHUB_OUTPUT}"
 
