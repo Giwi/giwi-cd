@@ -21,7 +21,7 @@ RUN npm run build
 # ── Stage 3: Runtime ─────────────────────────────────────────────
 FROM node:20-alpine
 
-RUN apk add --no-cache git tini su-exec python3 make g++
+RUN apk add --no-cache git tini su-exec python3 make g++ rsync
 
 RUN addgroup -S giwicd && adduser -S -G giwicd giwicd
 
