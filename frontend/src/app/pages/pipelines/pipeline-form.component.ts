@@ -101,17 +101,7 @@ interface NotificationStep {
                   <option [ngValue]="cred.id">{{ cred.name }} ({{ getTypeLabel(cred.type) }})</option>
                 }
               </select>
-              <div class="form-text">Credential used for git checkout</div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label mb-0">SSH Deploy Key</label>
-              <select class="form-select" formControlName="sshKeyId">
-                <option [ngValue]="null">No SSH key</option>
-                @for (cred of getSshKeyCredentials(); track cred.id) {
-                  <option [ngValue]="cred.id">{{ cred.name }}</option>
-                }
-              </select>
-              <div class="form-text">SSH key for rsync/SSH deploy steps</div>
+              <div class="form-text">Select credentials for private repositories</div>
             </div>
           </div>
 
@@ -218,6 +208,47 @@ interface NotificationStep {
                                 </div>
                               </div>
                             </div>
+                          } @else if (isSshSetupStep(i, j)) {
+                            <div class="card mb-2 border-0 notification-default">
+                              <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                  <span class="badge bg-secondary">
+                                    <i class="bi bi-key me-1"></i> SSH Key
+                                  </span>
+                                  <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-1" (click)="moveStep(i, j, -1)" [disabled]="j === 0" title="Move up">
+                                      <i class="bi bi-arrow-up"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-1" (click)="moveStep(i, j, 1)" [disabled]="j === getStepsControls(i).length - 1" title="Move down">
+                                      <i class="bi bi-arrow-down"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger px-1" (click)="removeStep(i, j)" title="Delete">
+                                      <i class="bi bi-trash"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                                <div class="row g-2">
+                                  <div class="col-md-4">
+                                    <select class="form-select form-select-sm" [formControlName]="j" (change)="onProviderChange(i, j)">
+                                      <option value="command">Command</option>
+                                      <option value="ssh-setup" selected>SSH Key</option>
+                                      <option value="notification-telegram">Telegram</option>
+                                      <option value="notification-slack">Slack</option>
+                                      <option value="notification-teams">Teams</option>
+                                      <option value="notification-mail">Mail</option>
+                                    </select>
+                                  </div>
+                                  <div class="col-md-8">
+                                    <select class="form-select form-select-sm" [formControl]="getNotificationFormControl(i, j, 'credentialId')">
+                                      <option value="">Select SSH key credential</option>
+                                      @for (cred of getSshCredentials(); track cred.id) {
+                                        <option [value]="cred.id">{{ cred.name }}</option>
+                                      }
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           } @else {
                             <div class="input-group mb-2" [class.has-validation]="getStepControl(i, j)?.invalid">
                               <button type="button" class="btn btn-outline-secondary btn-sm px-1" (click)="moveStep(i, j, -1)" [disabled]="j === 0" title="Move up">
@@ -245,9 +276,11 @@ interface NotificationStep {
                           </button>
                           <div class="dropdown">
                             <button type="button" class="btn btn-link text-decoration-none p-0 text-success dropdown-toggle" data-bs-toggle="dropdown">
-                              <i class="bi bi-bell me-1"></i> Add Notification
+                              <i class="bi bi-bell me-1"></i> Add Step
                             </button>
                             <ul class="dropdown-menu">
+                              <li><a class="dropdown-item" (click)="addSshSetupStep(i)"><i class="bi bi-key text-warning me-2"></i>SSH Key</a></li>
+                              <li><hr class="dropdown-divider"></li>
                               <li><a class="dropdown-item" (click)="addNotificationStep(i, 'telegram')"><i class="bi bi-telegram text-info me-2"></i>Telegram</a></li>
                               <li><a class="dropdown-item" (click)="addNotificationStep(i, 'slack')"><i class="bi bi-chat-dots text-danger me-2"></i>Slack</a></li>
                               <li><a class="dropdown-item" (click)="addNotificationStep(i, 'teams')"><i class="bi bi-people text-primary me-2"></i>Teams</a></li>
@@ -419,6 +452,7 @@ export class PipelineFormComponent implements OnInit {
   submitting = signal(false);
   formSubmitted = signal(false);
   notificationSteps = signal<Map<string, { provider: string; channel?: string; credentialId?: string; message?: string }>>(new Map());
+  sshSteps = signal<Map<string, { credentialId: string }>>(new Map());
   templates: PipelineTemplate[] = [];
   selectedTemplate = signal<PipelineTemplate | null>(null);
   private toastService = inject(ToastService);
@@ -443,6 +477,8 @@ export class PipelineFormComponent implements OnInit {
 
   selectTemplate(template: PipelineTemplate): void {
     this.selectedTemplate.set(template);
+    this.notificationSteps.set(new Map());
+    this.sshSteps.set(new Map());
     this.stages.clear();
     (template.stages || []).forEach((stage, sIdx) => {
       this.addStage(stage, sIdx);
@@ -505,7 +541,6 @@ export class PipelineFormComponent implements OnInit {
       description: [''],
       repositoryUrl: [''],
       credentialId: [null],
-      sshKeyId: [null],
       branch: ['main', Validators.required],
       enabled: [true],
       keepBuilds: [10],
@@ -543,7 +578,6 @@ export class PipelineFormComponent implements OnInit {
       description: pipeline.description,
       repositoryUrl: pipeline.repositoryUrl,
       credentialId: pipeline.credentialId || null,
-      sshKeyId: pipeline.sshKeyId || null,
       branch: pipeline.branch,
       enabled: pipeline.enabled,
       keepBuilds: pipeline.keepBuilds || 10,
@@ -609,6 +643,11 @@ export class PipelineFormComponent implements OnInit {
     return this.notificationSteps().has(key);
   }
 
+  isSshSetupStep(stageIndex: number, stepIndex: number): boolean {
+    const key = this.getStepKey(stageIndex, stepIndex);
+    return this.sshSteps().has(key);
+  }
+
   getStepProvider(stageIndex: number, stepIndex: number): string {
     const key = this.getStepKey(stageIndex, stepIndex);
     return this.notificationSteps().get(key)?.provider || '';
@@ -616,6 +655,10 @@ export class PipelineFormComponent implements OnInit {
 
   getNotificationCredentials(): Credential[] {
     return (this.credentials() || []).filter(c => ['telegram', 'slack', 'teams', 'mail'].includes(c.type));
+  }
+
+  getSshCredentials(): Credential[] {
+    return (this.credentials() || []).filter(c => c.type === 'ssh-key');
   }
 
   getNotificationChannelControl(stageIndex: number, stepIndex: number): string {
@@ -739,6 +782,20 @@ export class PipelineFormComponent implements OnInit {
     this.notificationSteps.set(newMap);
   }
 
+  addSshSetupStep(stageIndex: number): void {
+    const steps = this.getSteps(stageIndex);
+    const stepIndex = steps.length;
+    const key = this.getStepKey(stageIndex, stepIndex);
+    
+    steps.push(this.fb.control('ssh-setup', Validators.required));
+    
+    this.addNotificationControl(stageIndex, key, 'credentialId', '');
+    
+    const newMap = new Map(this.sshSteps());
+    newMap.set(key, { credentialId: '' });
+    this.sshSteps.set(newMap);
+  }
+
   convertToNotification(stageIndex: number, stepIndex: number, provider: string): void {
     const key = this.getStepKey(stageIndex, stepIndex);
     const steps = this.getSteps(stageIndex);
@@ -757,24 +814,29 @@ export class PipelineFormComponent implements OnInit {
     const value = this.getStepControl(stageIndex, stepIndex)?.value || '';
     const provider = value.replace('notification-', '');
     const key = this.getStepKey(stageIndex, stepIndex);
-    
+
+    const notifMap = new Map(this.notificationSteps());
+    const sshMap = new Map(this.sshSteps());
+    notifMap.delete(key);
+    sshMap.delete(key);
+
     if (value.startsWith('notification-')) {
       this.addNotificationControl(stageIndex, key, 'channel', '');
       this.addNotificationControl(stageIndex, key, 'credentialId', '');
       this.addNotificationControl(stageIndex, key, 'message', this.getDefaultMessage());
       
-      const newMap = new Map(this.notificationSteps());
-      const existing = newMap.get(key) || { provider, channel: '', credentialId: '', message: '' };
-      newMap.set(key, { ...existing, provider });
-      this.notificationSteps.set(newMap);
+      const existing = notifMap.get(key) || { provider, channel: '', credentialId: '', message: '' };
+      notifMap.set(key, { ...existing, provider });
+    } else if (value === 'ssh-setup') {
+      this.addNotificationControl(stageIndex, key, 'credentialId', '');
+      sshMap.set(key, { credentialId: '' });
     } else {
       this.removeNotificationControl(stageIndex, key, 'credentialId');
       this.removeNotificationControl(stageIndex, key, 'message');
-      
-      const newMap = new Map(this.notificationSteps());
-      newMap.delete(key);
-      this.notificationSteps.set(newMap);
     }
+
+    this.notificationSteps.set(notifMap);
+    this.sshSteps.set(sshMap);
   }
 
   private getDefaultMessage(): string {
@@ -789,9 +851,9 @@ export class PipelineFormComponent implements OnInit {
     const notifData = stageGroup.get('notificationData') as FormGroup;
     const sIdx = stageIndex ?? this.stages.length;
     const stIdx = stepIdx ?? steps.length;
+    const key = this.getStepKey(sIdx, stIdx);
     
     if (stepData?.type === 'notification' && stepData.provider) {
-      const key = this.getStepKey(sIdx, stIdx);
       const newMap = new Map(this.notificationSteps());
       newMap.set(key, { 
         provider: stepData.provider, 
@@ -815,6 +877,17 @@ export class PipelineFormComponent implements OnInit {
       }
       
       steps.push(this.fb.control(`notification-${stepData.provider}`, Validators.required));
+    } else if (stepData?.type === 'ssh-setup') {
+      const newMap = new Map(this.sshSteps());
+      newMap.set(key, { credentialId: stepData.credentialId || '' });
+      this.sshSteps.set(newMap);
+
+      const credControlName = `${key}-credentialId`;
+      if (!notifData.get(credControlName)) {
+        notifData.addControl(credControlName, this.fb.control(stepData.credentialId || ''));
+      }
+
+      steps.push(this.fb.control('ssh-setup', Validators.required));
     } else {
       steps.push(this.fb.control(stepData?.command || '', Validators.required));
     }
@@ -830,9 +903,13 @@ export class PipelineFormComponent implements OnInit {
     
     steps.removeAt(stepIndex);
     
-    const newMap = new Map(this.notificationSteps());
-    newMap.delete(key);
-    this.notificationSteps.set(newMap);
+    const notifMap = new Map(this.notificationSteps());
+    notifMap.delete(key);
+    this.notificationSteps.set(notifMap);
+
+    const sshMap = new Map(this.sshSteps());
+    sshMap.delete(key);
+    this.sshSteps.set(sshMap);
   }
 
   removeStage(index: number): void {
@@ -902,10 +979,6 @@ export class PipelineFormComponent implements OnInit {
     return (this.credentials() || []).filter(c => !['telegram', 'slack', 'teams', 'mail'].includes(c.type));
   }
 
-  getSshKeyCredentials(): Credential[] {
-    return (this.credentials() || []).filter(c => c.type === 'ssh-key');
-  }
-
   getCredIcon(type: string): string {
     const icons: Record<string, string> = {
       'telegram': 'telegram',
@@ -960,6 +1033,13 @@ export class PipelineFormComponent implements OnInit {
             message: message || this.getDefaultMessage()
           });
           i++;
+        } else if (typeof cmd === 'string' && cmd === 'ssh-setup') {
+          const credentialId = notificationData[`${key}-credentialId`] || '';
+          steps.push({
+            type: 'ssh-setup',
+            credentialId: credentialId || undefined
+          });
+          i++;
         } else {
           steps.push({ command: cmd });
           i++;
@@ -986,10 +1066,6 @@ export class PipelineFormComponent implements OnInit {
 
     if (rawValue.credentialId) {
       data.credentialId = rawValue.credentialId;
-    }
-
-    if (rawValue.sshKeyId) {
-      data.sshKeyId = rawValue.sshKeyId;
     }
 
     if (rawValue.errorNotification?.enabled) {

@@ -67,6 +67,8 @@ async function executeStage(): Promise<boolean> {
       } catch (err) {
         emit('error', `  ❌ Notification error: ${(err as Error).message}`);
       }
+    } else if (step.type === 'ssh-setup') {
+      continue;
     } else {
       const command = interpolateCredentials(step.command || '', pipeline);
       const maskedCommand = commandExecutor.maskCredentials(command);

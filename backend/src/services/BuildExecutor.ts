@@ -117,24 +117,28 @@ class BuildExecutor extends EventEmitter {
       Build.update(build.id, { commitMessage });
     }
 
-    await this._setupSshKey(build.id, pipeline);
+    await this._setupSshKeys(build.id, pipeline);
 
     return cloneResult.workDir;
   }
 
-  private async _setupSshKey(buildId: string, pipeline: IPipeline): Promise<void> {
-    const sshCredId = pipeline.sshKeyId || pipeline.credentialId;
-    if (!sshCredId) return;
+  private async _setupSshKeys(buildId: string, pipeline: IPipeline): Promise<void> {
+    const stages = (pipeline.stages as Stage[]) || [];
+    for (const stage of stages) {
+      for (const step of stage.steps) {
+        if (step.type === 'ssh-setup' && step.credentialId) {
+          const cred = Credential.getRaw(step.credentialId);
+          if (cred && cred.type === 'ssh-key' && cred.privateKey) {
+            const sshDir = path.join(os.homedir(), '.ssh');
+            fs.mkdirSync(sshDir, { recursive: true, mode: 0o700 });
 
-    const cred = Credential.getRaw(sshCredId);
-    if (!cred || cred.type !== 'ssh-key' || !cred.privateKey) return;
-
-    const sshDir = path.join(os.homedir(), '.ssh');
-    fs.mkdirSync(sshDir, { recursive: true, mode: 0o700 });
-
-    const keyPath = path.join(sshDir, 'id_rsa');
-    fs.writeFileSync(keyPath, cred.privateKey, { mode: 0o600 });
-    this._emit(buildId, 'info', `🔑 SSH key set up for ${cred.name || 'deploy'}`);
+            const keyPath = path.join(sshDir, 'id_rsa');
+            fs.writeFileSync(keyPath, cred.privateKey, { mode: 0o600 });
+            this._emit(buildId, 'info', `🔑 SSH key set up: ${cred.name || 'deploy key'}`);
+          }
+        }
+      }
+    }
   }
 
   private async _executeStages(build: IBuild, pipeline: IPipeline, workDir: string | null): Promise<boolean> {

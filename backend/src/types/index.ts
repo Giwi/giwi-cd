@@ -32,7 +32,6 @@ export interface Pipeline {
   description?: string;
   repositoryUrl?: string;
   credentialId?: string;
-  sshKeyId?: string;
   branch: string;
   stages: Stage[];
   triggers?: {
@@ -72,7 +71,7 @@ export interface Stage {
 export interface Step {
   id: string;
   name?: string;
-  type?: 'command' | 'notification';
+  type?: 'command' | 'notification' | 'ssh-setup';
   command?: string;
   workingDir?: string;
   continueOnError?: boolean;

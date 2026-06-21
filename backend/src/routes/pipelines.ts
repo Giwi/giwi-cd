@@ -72,14 +72,13 @@ router.post('/', [
   body('errorNotification.provider').optional().isIn(['telegram', 'slack', 'teams', 'mail']).withMessage('Invalid notification provider')
 ], validate, (req: Request, res: Response) => {
   const sanitized = sanitizePipeline(req.body);
-  const { name, description, repositoryUrl, credentialId, sshKeyId, branch, stages, triggers, environment, keepBuilds, artifactPaths } = sanitized as Record<string, unknown>;
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, keepBuilds, artifactPaths } = sanitized as Record<string, unknown>;
 
   const pipeline = Pipeline.create({ 
     name: name as string, 
     description: description as string, 
     repositoryUrl: repositoryUrl as string, 
     credentialId: credentialId as string, 
-    sshKeyId: sshKeyId as string,
     branch: branch as string, 
     stages: stages as never[], 
     triggers: triggers as never, 
@@ -100,14 +99,13 @@ router.post('/import', [
   body('repositoryUrl').optional().trim().custom(validateRepoUrl).withMessage('Invalid repository URL. Accepted formats: http(s)://, git://, ssh://, git@host:path')
 ], validate, (req: Request, res: Response) => {
   const sanitized = sanitizePipeline(req.body);
-  const { name, description, repositoryUrl, credentialId, sshKeyId, branch, stages, triggers, environment, artifactPaths } = sanitized as Record<string, unknown>;
+  const { name, description, repositoryUrl, credentialId, branch, stages, triggers, environment, artifactPaths } = sanitized as Record<string, unknown>;
 
   const pipeline = Pipeline.create({
     name: name as string,
     description: (description as string) || '',
     repositoryUrl: (repositoryUrl as string) || '',
     credentialId: (credentialId as string) || undefined,
-    sshKeyId: (sshKeyId as string) || undefined,
     branch: (branch as string) || 'main',
     stages: (stages as never[]) || [],
     triggers: (triggers as never) || [],

@@ -6,7 +6,6 @@ export interface Pipeline {
   credentialId?: string | null;
   credentialName?: string | null;
   credentialType?: string | null;
-  sshKeyId?: string | null;
   branch: string;
   stages: Stage[];
   triggers: {
@@ -40,7 +39,7 @@ export interface Stage {
 }
 
 export interface Step {
-  type?: 'notification';
+  type?: 'notification' | 'ssh-setup';
   name?: string;
   command?: string;
   provider?: 'telegram' | 'slack' | 'teams' | 'mail';
