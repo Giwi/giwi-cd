@@ -932,28 +932,36 @@ export class PipelineFormComponent implements OnInit {
       const step = steps.at(stepIndex);
       const notificationData = this.stages.at(stageIndex).get('notificationData') as FormGroup;
       
-      const oldKey = `${stageIndex}-${stepIndex}`;
-      const newKey = `${stageIndex}-${newStepIndex}`;
+      const oldKey = this.getStepKey(stageIndex, stepIndex);
+      const newKey = this.getStepKey(stageIndex, newStepIndex);
       
-      const oldNotificationKey = this.getStepKey(stageIndex, stepIndex);
-      const newNotificationKey = this.getStepKey(stageIndex, newStepIndex);
-      const notifData = this.notificationSteps().get(oldNotificationKey);
+      // swap notification metadata
+      const notifMap = new Map(this.notificationSteps());
+      const oldNotif = notifMap.get(oldKey);
+      const newNotif = notifMap.get(newKey);
+      if (oldNotif) { notifMap.set(newKey, oldNotif); } else { notifMap.delete(newKey); }
+      if (newNotif) { notifMap.set(oldKey, newNotif); } else { notifMap.delete(oldKey); }
+      this.notificationSteps.set(notifMap);
+
+      // swap ssh metadata
+      const sshMap = new Map(this.sshSteps());
+      const oldSsh = sshMap.get(oldKey);
+      const newSsh = sshMap.get(newKey);
+      if (oldSsh) { sshMap.set(newKey, oldSsh); } else { sshMap.delete(newKey); }
+      if (newSsh) { sshMap.set(oldKey, newSsh); } else { sshMap.delete(oldKey); }
+      this.sshSteps.set(sshMap);
       
-      if (notifData && notificationData) {
-        const newMap = new Map(this.notificationSteps());
-        newMap.delete(oldNotificationKey);
-        newMap.set(newNotificationKey, notifData);
-        this.notificationSteps.set(newMap);
-        
-        const oldControls = ['channel', 'credentialId', 'message'];
-        oldControls.forEach(ctrl => {
+      // swap notificationData form controls
+      if (notificationData) {
+        ['channel', 'credentialId', 'message'].forEach(ctrl => {
           const oldName = `${oldKey}-${ctrl}`;
           const newName = `${newKey}-${ctrl}`;
-          const control = notificationData.get(oldName);
-          if (control) {
-            notificationData.removeControl(oldName);
-            notificationData.addControl(newName, control);
-          }
+          const oldCtrl = notificationData.get(oldName);
+          const newCtrl = notificationData.get(newName);
+          if (oldCtrl) { notificationData.removeControl(oldName); }
+          if (newCtrl) { notificationData.removeControl(newName); }
+          if (oldCtrl) { notificationData.addControl(newName, oldCtrl); }
+          if (newCtrl) { notificationData.addControl(oldName, newCtrl); }
         });
       }
       
