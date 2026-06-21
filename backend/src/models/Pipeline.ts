@@ -81,6 +81,13 @@ export class Pipeline {
     return this.findById(id);
   }
 
+  static getScheduledPipelines(): IPipeline[] {
+    return db.get('pipelines').filter((p: Record<string, unknown>) => {
+      const pipeline = p as unknown as IPipeline;
+      return !!(pipeline.enabled && pipeline.triggers?.schedule);
+    }).value() as unknown as IPipeline[];
+  }
+
   static getPushTriggerPipelines(): IPipeline[] {
     return db.get('pipelines').filter((p: Record<string, unknown>) => {
       const pipeline = p as unknown as IPipeline;

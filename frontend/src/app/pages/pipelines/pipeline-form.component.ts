@@ -314,6 +314,11 @@ interface NotificationStep {
                 <input type="checkbox" class="form-check-input" formControlName="push" id="push">
                 <label class="form-check-label" for="push">On push</label>
               </div>
+              <div class="mb-2">
+                <label class="form-label small" for="schedule">Schedule (cron expression)</label>
+                <input type="text" class="form-control form-control-sm" formControlName="schedule" id="schedule" placeholder="*/30 * * * *">
+                <div class="form-text">Leave empty for no schedule. Uses UTC. Examples: <code>0 */2 * * *</code> (every 2h), <code>0 6 * * 1-5</code> (weekdays 6am)</div>
+              </div>
             </ng-container>
 
             <ng-container formGroupName="errorNotification">

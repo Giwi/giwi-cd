@@ -86,6 +86,10 @@ router.post('/', [
     keepBuilds: keepBuilds as number, 
     artifactPaths: artifactPaths as string[]
   });
+
+  const scheduleService = req.app.get('scheduleService');
+  if (scheduleService) scheduleService.refreshPipeline(pipeline.id);
+
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline created successfully' });
 });
 
@@ -108,6 +112,10 @@ router.post('/import', [
     environment: (environment as never[]) || [],
     artifactPaths: (artifactPaths as string[]) || []
   });
+
+  const scheduleService = req.app.get('scheduleService');
+  if (scheduleService) scheduleService.refreshPipeline(pipeline.id);
+
   res.status(201).json({ success: true, data: pipeline, message: 'Pipeline imported successfully' });
 });
 
@@ -130,6 +138,10 @@ router.put('/:id', [
 
   const sanitized = sanitizePipeline(req.body);
   const updated = Pipeline.update(req.params.id, sanitized as Partial<IPipeline>);
+
+  const scheduleService = req.app.get('scheduleService');
+  if (scheduleService) scheduleService.refreshPipeline(req.params.id);
+
   res.json({ success: true, data: updated, message: 'Pipeline updated successfully' });
 });
 
@@ -140,6 +152,10 @@ router.delete('/:id', [
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
   Pipeline.delete(req.params.id);
+
+  const scheduleService = req.app.get('scheduleService');
+  if (scheduleService) scheduleService.removePipeline(req.params.id);
+
   res.json({ success: true, message: 'Pipeline deleted successfully' });
 });
 
@@ -200,6 +216,10 @@ router.patch('/:id/toggle', [
   if (!pipeline) return res.status(404).json({ success: false, error: 'Pipeline not found' });
 
   const updated = Pipeline.update(req.params.id, { enabled: !pipeline.enabled });
+
+  const scheduleService = req.app.get('scheduleService');
+  if (scheduleService) scheduleService.refreshPipeline(req.params.id);
+
   res.json({ success: true, data: updated, message: `Pipeline ${updated?.enabled ? 'enabled' : 'disabled'}` });
 });
 

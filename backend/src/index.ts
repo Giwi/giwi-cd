@@ -7,6 +7,7 @@ import app from './app';
 import wsManager from './services/WebSocketManager';
 import { createDefaultAdmin } from './utils/createDefaultAdmin';
 import PollingService from './services/PollingService';
+import ScheduleService from './services/ScheduleService';
 import type BuildRunner from './services/BuildRunner';
 
 validateEnvironment();
@@ -24,10 +25,16 @@ const pollingService = new PollingService(buildRunner.executor);
 pollingService.start();
 app.set('pollingService', pollingService);
 
+const scheduleService = new ScheduleService();
+scheduleService.setExecutor(buildRunner.executor);
+scheduleService.start();
+app.set('scheduleService', scheduleService);
+
 const gracefulShutdown = async (signal: string): Promise<void> => {
   logger.info(`${signal} received, initiating graceful shutdown...`);
 
   pollingService.stop();
+  scheduleService.stop();
 
   const runningBuilds = buildRunner.executor.getRunningBuilds();
   const queuedBuilds = buildRunner.queue.getQueueLength();
@@ -92,6 +99,7 @@ server.listen(PORT, () => {
 ║  📡 WebSocket: ws://localhost:${PORT}/ws     ║
 ║  🔗 API: http://localhost:${PORT}/api        ║
 ║  🔄 Polling: ${polling}       ║
+║  ⏰ Scheduler: ${scheduleService.jobCount} job(s)     ║
 ║  🌍 ENV: ${env}              ║
 ╚═══════════════════════════════════════════╝
   `);
