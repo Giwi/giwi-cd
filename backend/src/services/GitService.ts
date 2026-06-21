@@ -157,24 +157,29 @@ class GitService {
     };
 
     return new Promise((resolve) => {
-      emit('info', `🔄 Pulling latest changes...`);
+      emit('info', `🔄 Fetching latest changes...`);
 
-      const cmds = [
-        `git -C "${workDir}" fetch origin`,
-        `git -C "${workDir}" checkout ${branch}`,
-        `git -C "${workDir}" pull ${authUrl.includes('@') ? authUrl : ''} origin ${branch}`
-      ];
-
-      const fullCmd = cmds.join(' && ');
-      exec(fullCmd, { timeout: 120000 }, (error: ExecException | null, _stdout: string, _stderr: string) => {
-        if (error) {
-          emit('warn', `⚠️ Git pull failed: ${error.message}`);
-          emit('info', `   Using existing repository files`);
-          resolve({ success: true, workDir, warning: error.message });
-        } else {
-          emit('success', `✅ Repository updated successfully`);
-          resolve({ success: true, workDir });
+      const fetchCmd = `git -C "${workDir}" fetch origin ${branch}`;
+      exec(fetchCmd, { timeout: 60000 }, (fetchErr: ExecException | null) => {
+        if (fetchErr) {
+          emit('warn', `⚠️ Git fetch failed: ${fetchErr.message}`);
         }
+
+        const resetCmd = `git -C "${workDir}" reset --hard origin/${branch}`;
+        exec(resetCmd, { timeout: 30000 }, (resetErr: ExecException | null) => {
+          if (resetErr) {
+            emit('warn', `⚠️ Git reset failed, trying clean clone...`);
+            fs.rmSync(workDir, { recursive: true, force: true });
+            this._clone(buildId, authUrl, branch, workDir, _credentialId).then(resolve);
+            return;
+          }
+
+          const cleanCmd = `git -C "${workDir}" clean -fd`;
+          exec(cleanCmd, { timeout: 30000 }, () => {
+            emit('success', `✅ Repository updated to latest ${branch}`);
+            resolve({ success: true, workDir });
+          });
+        });
       });
     });
   }
