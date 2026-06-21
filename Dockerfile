@@ -19,7 +19,12 @@ COPY backend/ ./
 RUN npm run build
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────
+ARG VERSION=1.0.0
+
 FROM node:20-alpine
+
+ARG VERSION
+ENV APP_VERSION=${VERSION}
 
 RUN apk add --no-cache git tini su-exec python3 make g++ rsync
 

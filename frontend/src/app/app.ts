@@ -5,6 +5,7 @@ import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.
 import { ToastComponent } from './components/toast.component';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
+import { ApiService } from './services/api.service';
 
 @Component({
   selector: 'app-root',
@@ -27,7 +28,7 @@ import { AuthService } from './services/auth.service';
             @if (!sidebarCollapsed()) {
               <div>
                 <span class="brand-name">GiwiCD</span>
-                <div class="brand-version">v1.0.0</div>
+                <div class="brand-version">{{ version() }}</div>
               </div>
             }
           </div>
@@ -332,14 +333,20 @@ export class App {
   protected readonly currentYear = new Date().getFullYear();
   protected readonly themeService = inject(ThemeService);
   protected readonly authService = inject(AuthService);
+  protected readonly apiService = inject(ApiService);
   protected readonly isAdmin = this.authService.isAdmin;
   protected readonly sidebarCollapsed = signal(false);
   protected readonly expandedGroups = signal<Set<string>>(new Set(['Pipelines', 'Settings']));
+  protected readonly version = signal('');
 
   private menuItems: { label: string; icon: string; route?: string; exact?: boolean; children?: { label: string; route: string; icon: string; exact?: boolean }[] }[] = [];
 
   constructor() {
     this.buildMenuItems();
+    this.apiService.get<{ version: string }>('/version').subscribe({
+      next: (res) => this.version.set(`v${res.version}`),
+      error: () => this.version.set('')
+    });
   }
 
   private buildMenuItems(): void {

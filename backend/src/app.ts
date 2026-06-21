@@ -70,7 +70,7 @@ apiRouter.use('/polling', authenticate as express.RequestHandler, pollingRoutes)
 apiRouter.use('/artifacts', authenticate as express.RequestHandler, artifactRoutes);
 
 apiRouter.get('/version', (_req: express.Request, res: express.Response) => {
-  res.json({ version: '1.0.0', apiVersion: 'v1', deprecated: false });
+  res.json({ version: process.env.APP_VERSION || '1.0.0', apiVersion: 'v1', deprecated: false });
 });
 
 const v1Router = express.Router();
@@ -86,7 +86,7 @@ v1Router.use('/polling', authenticate, pollingRoutes);
 v1Router.use('/artifacts', authenticate, artifactRoutes);
 
 v1Router.get('/version', (_req: express.Request, res: express.Response) => {
-  res.json({ version: '1.0.0', apiVersion: 'v1', deprecated: false });
+  res.json({ version: process.env.APP_VERSION || '1.0.0', apiVersion: 'v1', deprecated: false });
 });
 
 app.use('/api/v1', v1Router);
