@@ -1,33 +1,52 @@
 services:
   giwicd:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/giwi/giwi-cd:${IMAGE_TAG:-latest}
     container_name: giwicd
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
-    env_file:
-      - .env.docker
     environment:
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - PORT=${PORT:-3000}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4200}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - NODE_ENV=production
+      - DB_TYPE=${DB_TYPE:-json}
+      - DB_FILE=${DB_FILE:-./data/db.json}
+      - MAX_CONCURRENT_BUILDS=${MAX_CONCURRENT_BUILDS:-3}
+      - BUILD_TIMEOUT=${BUILD_TIMEOUT:-300000}
+      - POLLING_INTERVAL=${POLLING_INTERVAL:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       - MAX_LOG_SIZE=${MAX_LOG_SIZE:-10}
       - MAX_LOG_FILES=${MAX_LOG_FILES:-5}
       - LOG_DISK_THRESHOLD=${LOG_DISK_THRESHOLD:-90}
       - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7}
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-true}
+      - RETENTION_DAYS=${RETENTION_DAYS:-30}
+      - DEFAULT_TIMEOUT=${DEFAULT_TIMEOUT:-3600}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
     volumes:
       - giwicd-data:/app/data
       - giwicd-logs:/app/logs
+      - giwicd-artifacts:/app/artifacts
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
+    networks:
+      - giwicd-net
+
+networks:
+  giwicd-net:
+    driver: bridge
 
 volumes:
   giwicd-data:
   giwicd-logs:
+  giwicd-artifacts:

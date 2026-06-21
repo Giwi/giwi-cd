@@ -39,7 +39,7 @@ import { AuthService } from '../services/auth.service';
             <a routerLink="/login" class="btn btn-primary btn-lg px-4">
               <i class="bi bi-rocket-takeoff me-2"></i>Get Started
             </a>
-            <a href="https://github.com/giwi/giwicd" target="_blank" class="btn btn-outline-secondary btn-lg px-4">
+            <a href="https://github.com/Giwi/giwi-cd" target="_blank" class="btn btn-outline-secondary btn-lg px-4">
               <i class="bi bi-github me-2"></i>Documentation
             </a>
           </div>

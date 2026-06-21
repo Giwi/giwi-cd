@@ -75,6 +75,16 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
 
+      - name: Generate tags
+        id: tags
+        shell: bash
+        run: |
+          TAGS="${{ steps.meta.outputs.tags }}"
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAGS="$TAGS,ghcr.io/${{ github.repository }}:latest"
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -94,7 +104,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.tags.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ github.event_name != 'pull_request' }}
           cache-from: type=gha
