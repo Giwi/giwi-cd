@@ -26,7 +26,7 @@ FROM node:20-alpine
 ARG VERSION
 ENV APP_VERSION=${VERSION}
 
-RUN apk add --no-cache git tini su-exec python3 make g++ rsync
+RUN apk add --no-cache git tini su-exec python3 make g++ rsync openssh
 
 RUN addgroup -S giwicd && adduser -S -G giwicd giwicd
 
