@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminService } from '../../../services/admin.service';
@@ -8,7 +7,7 @@ import { AdminSettings } from '../../../models/admin.types';
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   template: `
     <div class="page-header">
       <div>
@@ -257,79 +256,42 @@ export class SettingsComponent implements OnInit {
   }
 
   saveRegistration(): void {
-    this.isSaving.set(true);
-    this.message.set(null);
-
-    this.adminService.updateSettings({ allowRegistration: this.allowRegistration }).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.message.set({ type: 'success', text: 'Registration settings saved successfully' });
-        setTimeout(() => this.message.set(null), 3000);
-      },
-      error: (err: any) => {
-        this.isSaving.set(false);
-        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save settings' });
-      }
-    });
+    this.saveSettings({ allowRegistration: this.allowRegistration }, 'Registration settings saved successfully');
   }
 
   saveBuildSettings(): void {
-    this.isSaving.set(true);
-    this.message.set(null);
-
-    this.adminService.updateSettings({
+    this.saveSettings({
       maxConcurrentBuilds: this.maxConcurrentBuilds,
       defaultTimeout: this.defaultTimeout,
       retentionDays: this.retentionDays
-    }).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.message.set({ type: 'success', text: 'Build settings saved successfully' });
-        setTimeout(() => this.message.set(null), 3000);
-      },
-      error: (err: any) => {
-        this.isSaving.set(false);
-        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save settings' });
-      }
-    });
+    }, 'Build settings saved successfully');
   }
 
   savePollingSettings(): void {
-    this.isSaving.set(true);
-    this.message.set(null);
-
-    this.adminService.updateSettings({ pollingInterval: this.pollingInterval }).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.message.set({ type: 'success', text: 'Polling settings saved successfully' });
-        setTimeout(() => this.message.set(null), 3000);
-      },
-      error: (err: any) => {
-        this.isSaving.set(false);
-        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save polling settings' });
-      }
-    });
+    this.saveSettings({ pollingInterval: this.pollingInterval }, 'Polling settings saved successfully');
   }
 
   saveNotificationSettings(): void {
-    this.isSaving.set(true);
-    this.message.set(null);
-
     const notificationDefaults = {
       telegram: { defaultChannel: this.telegramDefaultChannel || undefined },
       slack: { defaultChannel: this.slackDefaultChannel || undefined },
       teams: { defaultChannel: this.teamsDefaultChannel || undefined }
     };
+    this.saveSettings({ notificationDefaults }, 'Notification settings saved successfully');
+  }
 
-    this.adminService.updateSettings({ notificationDefaults }).subscribe({
+  private saveSettings(partial: Partial<AdminSettings>, successText: string): void {
+    this.isSaving.set(true);
+    this.message.set(null);
+    this.adminService.updateSettings(partial).subscribe({
       next: () => {
         this.isSaving.set(false);
-        this.message.set({ type: 'success', text: 'Notification settings saved successfully' });
+        this.message.set({ type: 'success', text: successText });
         setTimeout(() => this.message.set(null), 3000);
       },
       error: (err: any) => {
         this.isSaving.set(false);
-        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save notification settings' });
+        this.message.set({ type: 'error', text: err.error?.error || 'Failed to save settings' });
       }
     });
   }

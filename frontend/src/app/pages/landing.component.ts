@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 import { AuthService } from '../services/auth.service';
@@ -7,7 +6,7 @@ import { AuthService } from '../services/auth.service';
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `
     <div class="landing-container">
       <nav class="landing-nav">

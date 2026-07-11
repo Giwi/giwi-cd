@@ -1,5 +1,4 @@
 import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -8,7 +7,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-notification-add',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     <div class="page-header">
       <div>

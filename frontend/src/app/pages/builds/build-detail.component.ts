@@ -1,16 +1,16 @@
 import { Component, OnInit, OnDestroy, AfterViewChecked, signal, ViewChild, ElementRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { Build, Pipeline, BuildLog, ApiResponse, WebSocketMessage, Artifact } from '../../models/types';
+import { formatDuration, formatDate } from '../../utils/format';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-build-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `
     <div class="page-header">
       <div class="d-flex align-items-center gap-3">
@@ -301,18 +301,8 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
     return new Date(dateStr).toLocaleTimeString();
   }
 
-  formatDuration(seconds: number | null | undefined): string {
-    if (!seconds) return '-';
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins < 60 ? `${mins}m ${secs}s` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
-  }
-
-  formatDate(dateStr: string | null | undefined): string {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString();
-  }
+  formatDuration = formatDuration;
+  formatDate = formatDate;
 
   refresh(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -330,17 +320,6 @@ export class BuildDetailComponent implements OnInit, OnDestroy, AfterViewChecked
         }
       }
     });
-  }
-
-  getStageIcon(status?: string): string {
-    const icons: Record<string, string> = {
-      running: 'arrow-repeat spin',
-      success: 'check-circle-fill',
-      failed: 'x-circle-fill',
-      pending: 'clock',
-      cancelled: 'dash-circle'
-    };
-    return icons[status || 'pending'] || 'circle';
   }
 
   isStageCompleted(status?: string): boolean {

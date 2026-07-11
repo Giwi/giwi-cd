@@ -1,5 +1,4 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -8,7 +7,7 @@ import { Credential, ApiResponse } from '../../models/types';
 @Component({
   selector: 'app-credential-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink],
   template: `
     <div class="page-header">
       <div class="d-flex align-items-center gap-3">

@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, signal, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ApiService } from '../../../services/api.service';
 import { ApiResponse } from '../../../models/types';
 
@@ -12,7 +11,7 @@ interface LogEntry {
 @Component({
   selector: 'app-logs',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="page-header">
       <div>

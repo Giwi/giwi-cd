@@ -1,5 +1,4 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -10,7 +9,7 @@ import { Credential, ApiResponse } from '../../models/types';
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     <div class="page-header">
       <div>
@@ -241,15 +240,5 @@ export class NotificationsComponent implements OnInit {
         this.toastService.error(err.error?.error || 'Failed to send test notification');
       }
     });
-  }
-
-  getChannelLabel(type: string): string {
-    const labels: Record<string, string> = {
-      'telegram': 'Chat ID',
-      'slack': 'channel',
-      'teams': 'channel',
-      'mail': 'email address'
-    };
-    return labels[type] || 'channel';
   }
 }

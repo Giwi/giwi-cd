@@ -1,10 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
-
-export interface WebSocketMessage {
-  type: string;
-  [key: string]: unknown;
-}
+import { WebSocketMessage } from '../models/types';
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService implements OnDestroy {

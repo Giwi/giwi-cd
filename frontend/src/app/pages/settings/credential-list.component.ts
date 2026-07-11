@@ -1,5 +1,4 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { ConfirmService } from '../../services/confirm.service';
@@ -8,7 +7,7 @@ import { Credential, ApiResponse } from '../../models/types';
 @Component({
   selector: 'app-credential-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `
     <div class="page-header">
       <div>

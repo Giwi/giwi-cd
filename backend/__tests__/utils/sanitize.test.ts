@@ -1,4 +1,4 @@
-const { sanitizeString, sanitizeObject, sanitizePipeline, sanitizeCredential, sanitizeUser, sanitizeNotification } = require('../../src/utils/sanitize');
+const { sanitizeString, sanitizeObject, sanitizePipeline, sanitizeCredential } = require('../../src/utils/sanitize');
 
 describe('Sanitize Utility', () => {
   describe('sanitizeString', () => {
@@ -86,33 +86,6 @@ describe('Sanitize Utility', () => {
       expect(result.token).toBe('ghp_abc');
       expect(result.password).toBe('secret');
       expect(result.privateKey).toBe('key');
-    });
-  });
-
-  describe('sanitizeUser', () => {
-    it('should sanitize username and email', () => {
-      const input = { username: '<b>admin</b>', email: '<script>x</script>admin@test.com' };
-      const result = sanitizeUser(input);
-
-      expect(result.username).toBe('admin');
-      expect(result.email).toBe('admin@test.com');
-    });
-
-    it('should not sanitize password', () => {
-      const input = { password: '$2b$10$abc' };
-      const result = sanitizeUser(input);
-
-      expect(result.password).toBe('$2b$10$abc');
-    });
-  });
-
-  describe('sanitizeNotification', () => {
-    it('should sanitize message and channel', () => {
-      const input = { message: '<b>Build</b> failed', channel: '<i>#builds</i>' };
-      const result = sanitizeNotification(input);
-
-      expect(result.message).toBe('Build failed');
-      expect(result.channel).toBe('#builds');
     });
   });
 });

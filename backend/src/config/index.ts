@@ -116,25 +116,8 @@ class Config {
     return value;
   }
 
-  getAll(): Record<string, unknown> {
-    this.load();
-    return {
-      server: { ...this.server, env: this.server.env },
-      database: { ...this.database },
-      security: { jwtSecret: '***', jwtExpiresIn: this.security.jwtExpiresIn },
-      smtp: { host: this.smtp.host, port: this.smtp.port },
-      build: { ...this.build },
-      limits: { ...this.limits },
-      logging: { ...this.logging }
-    };
-  }
-
   isProduction(): boolean {
     return this.server.env === 'production';
-  }
-
-  isDevelopment(): boolean {
-    return this.server.env === 'development';
   }
 }
 

@@ -29,12 +29,28 @@ interface RunningBuild {
   process: null;
 }
 
+/**
+ * Core build execution engine. Orchestrates the full lifecycle of a build:
+ *
+ *   execute() → _prepareWorkspace() → _executeStages() → _finalizeBuild()
+ *
+ * Callers: ScheduleService, manual trigger route, webhook route — all call
+ * `execute()` directly, bypassing the BuildRunner queue.
+ *
+ * Each stage runs in a dedicated Worker thread (stageWorker.js) to isolate
+ * command execution. Workers receive the pipeline, build ID, and working
+ * directory via workerData.
+ *
+ * Workspace layout:
+ *   /tmp/giwicd-workspace/<hash>/   ← cloned repo (hash = int hash of repo URL)
+ *   <cwd>/artifacts/<pipelineId>/<buildId>/   ← collected artifacts
+ */
 class BuildExecutor extends EventEmitter {
   private wsManager: WSManager;
   private runningBuilds: Map<string, RunningBuild>;
   private stageWorkers: Map<string, Worker>;
   public gitService: {
-    cloneOrPull: (buildId: string, repoUrl: string, branch: string, credentialId: string | null) => Promise<{ success: boolean; workDir: string }>;
+    cloneOrPull: (buildId: string, repoUrl: string, branch: string, credentialId?: string | null) => Promise<{ success: boolean; workDir?: string; error?: string }>;
     getWorkspaceDir: () => string;
     getLastCommitMessage: (workDir: string) => Promise<string | null>;
     checkoutCommit: (buildId: string, workDir: string, commit: string) => Promise<{ success: boolean }>;
@@ -50,6 +66,11 @@ class BuildExecutor extends EventEmitter {
     this.gitService = new GitService(this.wsManager);
   }
 
+  /**
+   * Execute a build end-to-end: clone/pull repo, run all stages, finalize.
+   *
+   * @throws If the build ID is already running, or if clone fails
+   */
   async execute(build: IBuild, pipeline: IPipeline): Promise<void> {
     if (this.runningBuilds.has(build.id)) {
       throw new Error('Build already running');
@@ -85,10 +106,7 @@ class BuildExecutor extends EventEmitter {
     const branch = build.branch || pipeline.branch;
     this._emit(build.id, 'info', `📦 Checking out branch: ${branch}`);
 
-    const GitService = require('./GitService.js').default;
-    const gitService = new GitService(this.wsManager);
-
-    const cloneResult = await gitService.cloneOrPull(
+    const cloneResult = await this.gitService.cloneOrPull(
       build.id,
       pipeline.repositoryUrl,
       branch,
@@ -103,23 +121,24 @@ class BuildExecutor extends EventEmitter {
       throw new Error('Clone failed');
     }
 
-    this._emit(build.id, 'info', `📁 Working directory: ${cloneResult.workDir}`);
+    const workDir = cloneResult.workDir!;
+    this._emit(build.id, 'info', `📁 Working directory: ${workDir}`);
 
     if (build.commit) {
       this._emit(build.id, 'info', `🏷️ Checking out commit: ${(build.commit as string).substring(0, 7)}`);
-      await gitService.checkoutCommit(build.id, cloneResult.workDir, build.commit as string);
+      await this.gitService.checkoutCommit(build.id, workDir, build.commit as string);
     } else {
       this._emit(build.id, 'info', `✅ Branch ${branch} checked out`);
     }
 
-    const commitMessage = await gitService.getLastCommitMessage(cloneResult.workDir);
+    const commitMessage = await this.gitService.getLastCommitMessage(workDir);
     if (commitMessage) {
       Build.update(build.id, { commitMessage });
     }
 
     await this._setupSshKeys(build.id, pipeline);
 
-    return cloneResult.workDir;
+    return workDir;
   }
 
   private async _setupSshKeys(buildId: string, pipeline: IPipeline): Promise<void> {

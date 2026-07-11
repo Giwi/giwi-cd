@@ -73,24 +73,6 @@ apiRouter.get('/version', (_req: express.Request, res: express.Response) => {
   res.json({ version: process.env.APP_VERSION || '1.0.0', apiVersion: 'v1', deprecated: false });
 });
 
-const v1Router = express.Router();
-v1Router.use('/auth', authRoutes);
-v1Router.use('/health', healthRoutes);
-v1Router.use('/dashboard', optionalAuth, dashboardRoutes);
-v1Router.use('/webhooks', webhookRoutes);
-v1Router.use('/admin', authenticate, adminRoutes);
-v1Router.use('/pipelines', authenticate, pipelineRoutes);
-v1Router.use('/builds', authenticate, buildRoutes);
-v1Router.use('/credentials', authenticate, credentialRoutes);
-v1Router.use('/polling', authenticate, pollingRoutes);
-v1Router.use('/artifacts', authenticate, artifactRoutes);
-
-v1Router.get('/version', (_req: express.Request, res: express.Response) => {
-  res.json({ version: process.env.APP_VERSION || '1.0.0', apiVersion: 'v1', deprecated: false });
-});
-
-app.use('/api/v1', v1Router);
-
 app.get('/metrics', async (req: express.Request, res: express.Response) => {
   try {
     res.set('Content-Type', register.contentType);

@@ -1,11 +1,9 @@
 const Credential = require('../../src/models/Credential').default;
 const { db } = require('../../src/config/database');
-const { credentialCache } = require('../../src/services/CredentialCache');
 
 describe('Credential Model', () => {
   beforeEach(() => {
     db.set('credentials', []).write();
-    credentialCache.invalidateAll();
   });
 
   describe('create', () => {

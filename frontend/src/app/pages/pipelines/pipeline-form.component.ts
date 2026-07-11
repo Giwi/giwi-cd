@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule, TitleCasePipe } from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators, AbstractControl } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -19,7 +19,7 @@ interface NotificationStep {
 @Component({
   selector: 'app-pipeline-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, TitleCasePipe],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink, TitleCasePipe],
   template: `
     <div class="page-header">
       <div class="d-flex align-items-center gap-3">
@@ -706,10 +706,6 @@ export class PipelineFormComponent implements OnInit {
     return icons[provider] || 'bi-bell';
   }
 
-  getChannelPlaceholder(stageIndex: number, stepIndex: number): string {
-    return '';
-  }
-
   isSlackOrTeams(stageIndex: number, stepIndex: number): boolean {
     const provider = this.getStepProvider(stageIndex, stepIndex);
     return provider === 'slack' || provider === 'teams';
@@ -794,20 +790,6 @@ export class PipelineFormComponent implements OnInit {
     const newMap = new Map(this.sshSteps());
     newMap.set(key, { credentialId: '' });
     this.sshSteps.set(newMap);
-  }
-
-  convertToNotification(stageIndex: number, stepIndex: number, provider: string): void {
-    const key = this.getStepKey(stageIndex, stepIndex);
-    const steps = this.getSteps(stageIndex);
-    steps.at(stepIndex).setValue(`notification-${provider}`);
-    
-    this.addNotificationControl(stageIndex, key, 'channel', '');
-    this.addNotificationControl(stageIndex, key, 'credentialId', '');
-    this.addNotificationControl(stageIndex, key, 'message', this.getDefaultMessage());
-    
-    const newMap = new Map(this.notificationSteps());
-    newMap.set(key, { provider, channel: '', credentialId: '', message: this.getDefaultMessage() });
-    this.notificationSteps.set(newMap);
   }
 
   onProviderChange(stageIndex: number, stepIndex: number): void {
@@ -977,14 +959,6 @@ export class PipelineFormComponent implements OnInit {
       'ssh-key': 'SSH'
     };
     return labels[type] || type;
-  }
-
-  getCredVar(name: string): string {
-    return '${CRED:' + name + '}';
-  }
-
-  getGitCredentials(): Credential[] {
-    return (this.credentials() || []).filter(c => !['telegram', 'slack', 'teams', 'mail'].includes(c.type));
   }
 
   getCredIcon(type: string): string {

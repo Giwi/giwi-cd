@@ -1,15 +1,15 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { ToastService } from '../../services/toast.service';
 import { DashboardData, Build, ApiResponse } from '../../models/types';
+import { formatDuration, formatDate } from '../../utils/format';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `
      <div class="page-header">
        <div>
@@ -205,18 +205,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.toast.info('Refreshing dashboard data...');
   }
 
-  formatDuration(seconds: number | null): string {
-    if (!seconds) return '-';
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins < 60 ? `${mins}m ${secs}s` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
-  }
-
-  formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
+  formatDuration = formatDuration;
+  formatDate = formatDate;
 
   getStatusCount(key: string): number {
     const byStatus = this.data()?.builds?.byStatus;

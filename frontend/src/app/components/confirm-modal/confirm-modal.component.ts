@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ConfirmService } from '../../services/confirm.service';
 
 @Component({
   selector: 'app-confirm-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (confirmService.isOpen()) {
       <div class="modal-backdrop show"></div>

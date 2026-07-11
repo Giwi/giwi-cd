@@ -2,19 +2,19 @@ import type { Request, Response } from 'express';
 import express, { type Router } from 'express';
 import { Pipeline } from '../models/Pipeline';
 import { Build } from '../models/Build';
-import { RateLimiter } from '../middleware/rateLimiter';
+import { createRateLimiter } from '../middleware/rateLimit';
 import { sendError } from '../middleware/errorHandler';
 import type { Pipeline as IPipeline, Build as IBuild } from '../types/index';
 
 const router: Router = express.Router();
 
-const webhookLimiter = new RateLimiter({
+const webhookLimiter = createRateLimiter({
   windowMs: 60000,
   max: 30,
-  message: 'Too many webhook requests, please try again later'
+  message: { error: 'Too many webhook requests, please try again later' }
 });
 
-router.use(webhookLimiter.middleware());
+router.use(webhookLimiter);
 
 function normalizeRepoUrl(url: string | undefined): string | null {
   if (!url) return null;

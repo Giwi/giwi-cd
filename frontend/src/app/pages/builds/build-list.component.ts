@@ -1,16 +1,16 @@
 import { Component, OnInit, signal, computed, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
-import { WebSocketService, WebSocketMessage } from '../../services/websocket.service';
-import { Build, Pipeline, ApiResponse, BuildStatus } from '../../models/types';
+import { WebSocketService } from '../../services/websocket.service';
+import { Build, Pipeline, ApiResponse, BuildStatus, WebSocketMessage } from '../../models/types';
+import { formatDuration, formatDate } from '../../utils/format';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-build-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule],
   template: `
     <div class="page-header">
       <div>
@@ -172,18 +172,8 @@ export class BuildListComponent implements OnInit {
     this.loadBuilds();
   }
 
-  formatDuration(seconds: number | null): string {
-    if (!seconds) return '-';
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins < 60 ? `${mins}m ${secs}s` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
-  }
-
-  formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
+  formatDuration = formatDuration;
+  formatDate = formatDate;
 
   formatTrigger(trigger: string): string {
     const map: Record<string, string> = {

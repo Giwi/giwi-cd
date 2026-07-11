@@ -3,7 +3,6 @@ import express, { type Router } from 'express';
 import { param, query, validationResult } from 'express-validator';
 import { Build } from '../models/Build';
 import { createPagination, paginate } from '../middleware/pagination';
-import { dbIndex } from '../config/databaseIndex';
 
 const router: Router = express.Router();
 
@@ -37,39 +36,6 @@ router.get('/', createPagination(20, 50), [
 router.get('/stats', (_req: Request, res: Response) => {
   const stats = Build.getStats();
   res.json({ success: true, data: stats });
-});
-
-router.get('/stats/indexed', (_req: Request, res: Response) => {
-  const builds = dbIndex.getBuildsByPipeline('*') || [];
-  const all = builds;
-  const now = new Date();
-  const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  const recent24h = all.filter(b => new Date(b.createdAt as string) > last24h);
-  const recent7d = all.filter(b => new Date(b.createdAt as string) > last7d);
-  const success = all.filter(b => b.status === 'success');
-  const failed = all.filter(b => b.status === 'failed');
-
-  res.json({
-    success: true,
-    data: {
-      total: all.length,
-      last24h: recent24h.length,
-      last7d: recent7d.length,
-      successRate: all.length ? Math.round((success.length / all.length) * 100) : 0,
-      byStatus: {
-        pending: all.filter(b => b.status === 'pending').length,
-        running: all.filter(b => b.status === 'running').length,
-        success: success.length,
-        failed: failed.length,
-        cancelled: all.filter(b => b.status === 'cancelled').length
-      },
-      avgDuration: success.length
-        ? Math.round(success.reduce((s: number, b: Record<string, unknown>) => s + ((b.duration as number) || 0), 0) / success.length)
-        : 0
-    }
-  });
 });
 
 router.get('/:id', [

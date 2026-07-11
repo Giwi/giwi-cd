@@ -10,14 +10,12 @@ const DEFAULT_ADMIN = {
 
 async function createDefaultAdmin(): Promise<void> {
   const existingAdmin = db.get('users').find({ email: DEFAULT_ADMIN.email }).value();
-
   if (existingAdmin) {
     console.log('Admin user already exists');
     return;
   }
 
   const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN.password, 10);
-
   const admin = {
     id: uuidv4(),
     email: DEFAULT_ADMIN.email,
@@ -33,11 +31,4 @@ async function createDefaultAdmin(): Promise<void> {
   console.log('Please change the password after first login!');
 }
 
-function ensureDefaultAdmin(): void {
-  const admin = db.get('users').find({ role: 'admin' }).value();
-  if (!admin) {
-    createDefaultAdmin();
-  }
-}
-
-export { createDefaultAdmin, ensureDefaultAdmin, DEFAULT_ADMIN };
+export { createDefaultAdmin };
