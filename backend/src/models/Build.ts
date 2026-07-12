@@ -156,7 +156,7 @@ export class Build {
       const key = new Date(b.createdAt).toISOString().slice(0, 10);
       if (map[key]) {
         if (b.status in map[key]) {
-          map[key][b.status as keyof typeof map[key]]++;
+          (map[key] as Record<string, number>)[b.status]++;
         }
         if (b.duration) {
           map[key].durationSum += b.duration;
