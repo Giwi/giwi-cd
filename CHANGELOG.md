@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2026-07-12
+
+### Added
+
+- **Data Export** - `GET /api/admin/export` endpoint to export users, pipelines, credentials, and settings as JSON
+- **Export UI** - Admin settings page now includes an "Export Data" button
+
+### Changed
+
+- **Codebase Cleanup** - Removed dead code: `StageRunner`, `CredentialCache`, `databaseIndex`, `databaseAdapter`, `execWithRetry`, `RateLimiter`, `workers/`
+- **Duplicate Removal** - Removed duplicate `v1Router` in app.ts, duplicate `GitService` import in BuildExecutor, duplicate tech stack sections in docs
+- **Rate Limiting** - Replaced custom `RateLimiter` with `express-rate-limit` in webhooks
+- **API Paths** - Removed `/api/v1/` backward compatibility prefix, all endpoints now use `/api/` only
+- **Dead Code Removal** - Cleaned unused exports from `Config`, `retry`, `sanitize`, `createDefaultAdmin`, `errorHandler`
+
+### Removed
+
+- `/api/stats/indexed` endpoint (unused)
+
 ## [1.2.0] - 2026-04-03
 
 ### Added

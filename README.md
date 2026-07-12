@@ -2,7 +2,7 @@
 
 > A modern, self-hosted CI/CD platform built with Node.js, Express, and Angular
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.5-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Angular](https://img.shields.io/badge/Angular-20-red)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green)
@@ -27,7 +27,7 @@
 - **Theme Support** - Light and dark mode with modern UI
 - **Responsive Design** - Works on desktop and mobile
 - **API Pagination** - paginated list endpoints
-- **API Versioning** - `/api/v1/` prefix for backward compatibility
+- **Data Export** - Export users, pipelines, credentials, and settings as JSON
 - **TypeScript** - Full type-safe backend with strict compilation
 - **Comprehensive Tests** - Jest test suite with coverage
 - **Docker** - Multi-platform image for amd64/arm64
@@ -117,8 +117,6 @@ npm run test:coverage # Coverage report
 
 ## API Endpoints
 
-> All endpoints support both `/api/` and `/api/v1/` prefixes for backward compatibility.
-
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/version` | GET | No | Get API version |
@@ -156,6 +154,7 @@ npm run test:coverage # Coverage report
 | `/api/admin/settings` | PUT | Admin | Update settings |
 | `/api/admin/logs` | GET | Admin | Get server logs |
 | `/api/admin/logs` | DELETE | Admin | Clear logs |
+| `/api/admin/export` | GET | Admin | Export all data as JSON |
 
 ## Documentation
 

@@ -44,8 +44,6 @@ User Action
 
 ## API Routes
 
-> All routes support `/api/` and `/api/v1/` prefixes
-
 ```
 /api
 ├── /version              - API version info
@@ -103,7 +101,10 @@ User Action
 │   ├── PUT    /users/:id      - Update user
 │   ├── DELETE /users/:id      - Delete user
 │   ├── GET    /settings       - Get settings
-│   └── PUT    /settings      - Update settings
+│   ├── PUT    /settings       - Update settings
+│   ├── GET    /logs           - Get server logs
+│   ├── DELETE /logs           - Clear logs
+│   └── GET    /export         - Export all data as JSON
 │
 └── /webhooks
     ├── GET    /webhook/:id    - Trigger webhook manually
@@ -206,83 +207,6 @@ settings
 ├── key    (TEXT - PRIMARY KEY)
 └── value  (TEXT - JSON)
 ```
-users
-├── id          (UUID)
-├── email
-├── username
-├── password    (hashed)
-├── role        (admin/contributor)
-├── createdAt
-└── updatedAt
-
-pipelines
-├── id          (UUID)
-├── name
-├── description
-├── repositoryUrl
-├── branch
-├── credentialId
-├── enabled
-├── triggers
-│   ├── manual
-│   ├── push
-│   └── schedule
-├── stages
-│   ├── name
-│   ├── continueOnError
-│   └── steps[]
-│       ├── type       (command/notification)
-│       ├── provider   (telegram/slack/teams/mail)
-│       ├── credentialId
-│       ├── channel    (optional for slack/teams)
-│       ├── message
-│       └── command
-├── environment[]
-├── createdAt
-└── updatedAt
-
-builds
-├── id          (UUID)
-├── pipelineId
-├── pipelineName
-├── number
-├── status      (pending/running/success/failed/cancelled)
-├── branch
-├── commit
-├── commitMessage
-├── triggeredBy
-├── startedAt
-├── finishedAt
-├── duration
-├── stages[]
-│   ├── name
-│   ├── status
-│   └── steps[]
-└── logs[]
-
-credentials
-├── id          (UUID)
-├── name
-├── type        (token/username-password/ssh-key/telegram/slack/teams/mail)
-├── username
-├── token
-├── password
-├── privateKey
-├── passphrase
-├── smtp        (for mail type)
-├── from/to     (for mail type)
-├── description
-├── createdAt
-└── updatedAt
-
-settings
-├── registrationEnabled
-├── notificationDefaults
-│   ├── telegram.defaultChannel
-│   ├── slack.defaultChannel
-│   └── teams.defaultChannel
-└── createdAt
-```
 
 ## WebSocket Events
 
@@ -319,7 +243,7 @@ build:cancelled - Build cancelled
 │  JWT Auth (jsonwebtoken)                                        │
 │  bcrypt                                                         │
 │  WebSocket (ws)                                                 │
-│  Git operations (simple-git)                                    │
+│  Git operations (child_process)                                   │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -332,57 +256,23 @@ build:cancelled - Build cancelled
 │  pagination.js    - API pagination                              │
 │  asyncHandler.js  - Async error handling                        │
 │  errorHandler.js  - Global error handling                       │
-│  authGuard.js     - Role-based route guards                    │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Services                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │  BuildExecutor      - Build orchestration & queue management    │
-│  StageRunner        - Stage/step execution                      │
+│  BuildRunner        - Build execution and lifecycle             │
+│  BuildQueue         - FIFO queue with concurrency limit         │
 │  CommandExecutor    - Shell command execution                  │
 │  GitService         - Git clone/pull operations                 │
 │  NotificationService - Telegram, Slack, Teams, Email          │
 │  PollingService     - Git repository polling                   │
-│  WebSocketManager    - Real-time communication                  │
-│  ArtifactStorage     - Build artifact storage                  │
-│  CredentialCache     - Credential caching                       │
+│  ScheduleService    - Cron-based build scheduling              │
+│  WebSocketManager   - Real-time communication                  │
+│  ArtifactStorage    - Build artifact storage                  │
+│  stageWorker        - Stage/step execution worker              │
 └─────────────────────────────────────────────────────────────────┘
-Frontend                    Backend
-───────                   ──────
-Angular 20                 Node.js 18+
-TypeScript                 Express.js
-Bootstrap 5                JSON DB (lowdb)
-Bootstrap Icons            JWT Auth
-SCSS                        WebSocket
-                            Git operations (child_process)
-
-Middleware:
-├── auth.js               - JWT authentication
-├── rateLimit.js          - Rate limiting
-├── csrf.js               - CSRF protection
-├── logger.js              - Request logging
-├── pagination.js          - API pagination
-├── asyncHandler.js        - Async error handling
-└── errorHandler.js        - Global error handling
-
-Services:
-├── BuildExecutor          - Build orchestration
-├── StageRunner            - Stage/step execution
-├── CommandExecutor        - Shell command execution
-├── GitService             - Git operations
-├── NotificationService    - Telegram, Slack, Teams, Email
-├── PollingService         - Git repository polling
-└── WebSocketManager       - Real-time communication
-```
-Frontend                    Backend
-────────                   ──────
-Angular 20                 Node.js 18+
-TypeScript                 Express.js
-Bootstrap 5                JSON DB (lowdb)
-Bootstrap Icons           JWT Auth
-SCSS                       WebSocket
-                           Git operations (simple-git)
 ```
 
 ## Features
