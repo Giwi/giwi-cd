@@ -2,44 +2,30 @@
 
 ## System Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         GiwiCD                                  │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐ │
-│  │   Frontend   │      │    Backend    │      │   Workers    │ │
-│  │   (Angular) │◄────►│   (Express)   │◄────►│  (Builds)    │ │
-│  │  localhost   │      │  localhost    │      │  localhost    │ │
-│  │    :4200     │      │    :3000     │      │    :3000     │ │
-│  └──────────────┘      └──────┬───────┘      └──────────────┘ │
-│                               │                              ▲  │
-│                               ▼                              │  │
-│                        ┌──────────────┐                    │  │
-│                        │   Database   │                    │  │
-│                        │  (JSON File) │────────────────────┘  │
-│                        │  db.json     │                      │
-│                        └──────────────┘                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph GiwiCD
+        FE[Frontend<br/>Angular<br/>:4200]
+        BE[Backend<br/>Express<br/>:3000]
+        WK[Workers<br/>Builds<br/>:3000]
+        DB[(Database<br/>db.json)]
+
+        FE <--> BE
+        BE <--> WK
+        BE --> DB
+        WK --> DB
+    end
 ```
 
 ## Data Flow
 
-```
-User Action
-     │
-     ▼
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│  Browser    │────►│   Backend    │────►│  Build      │
-│  (Angular)  │◄────│  (Express)   │◄────│  Executor   │
-└─────────────┘     └──────┬───────┘     └─────────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │  Database    │
-                   │  (db.json)   │
-                   └──────────────┘
+```mermaid
+graph TD
+    U[User Action] --> FE[Browser<br/>Angular]
+    FE --> BE[Backend<br/>Express]
+    BE --> EX[Build Executor]
+    BE --> DB[(Database<br/>db.json)]
+    EX --> BE
 ```
 
 ## API Routes
@@ -113,25 +99,13 @@ User Action
 
 ## Build Pipeline Execution
 
-```
-Pipeline Trigger
-      │
-      ▼
-┌─────────────────┐
-│  Git Checkout  │
-│  (clone/pull)  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     ┌─────────────────┐
-│    Stage 1      │────►│    Stage 2      │
-│   (Build)       │     │    (Test)       │
-└────────┬────────┘     └────────┬────────┘
-         │                    │
-         ▼                    ▼
-   ┌─────────┐          ┌─────────┐
-   │ Step 1  │          │ Step 1  │
-   └─────────┘          └─────────┘
+```mermaid
+graph TD
+    T[Pipeline Trigger] --> G[Git Checkout<br/>clone/pull]
+    G --> S1[Stage 1<br/>Build]
+    S1 --> S2[Stage 2<br/>Test]
+    S1 --> S1S[Step 1]
+    S2 --> S2S[Step 1]
 ```
 
 ## Database Schema
