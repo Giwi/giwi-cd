@@ -8,6 +8,7 @@ const router: Router = express.Router();
 router.get('/', (req: Request, res: Response) => {
   const pipelines = Pipeline.findAll();
   const buildStats = Build.getStats();
+  const dailyStats = Build.getDailyStats();
   const recentBuilds = Build.findAll({ limit: 10 });
   const wsManager = req.app.get('wsManager');
 
@@ -23,6 +24,7 @@ router.get('/', (req: Request, res: Response) => {
     data: {
       pipelines: pipelineStats,
       builds: buildStats,
+      dailyStats,
       recentBuilds,
       connectedClients: wsManager ? wsManager.getConnectedClients() : 0,
       serverTime: new Date().toISOString()

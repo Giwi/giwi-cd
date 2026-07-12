@@ -90,9 +90,20 @@ export interface DashboardData {
     disabled: number;
   };
   builds: BuildStats;
+  dailyStats: DailyStat[];
   recentBuilds: Build[];
   connectedClients: number;
   serverTime: string;
+}
+
+export interface DailyStat {
+  date: string;
+  pending: number;
+  running: number;
+  success: number;
+  failed: number;
+  cancelled: number;
+  avgDuration: number;
 }
 
 export interface BuildStats {

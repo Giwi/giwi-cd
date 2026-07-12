@@ -234,4 +234,27 @@ router.put('/settings', [
   }
 });
 
+router.get('/export', (_req: Request, res: Response) => {
+  try {
+    const users = db.get('users').value();
+    const pipelines = db.get('pipelines').value();
+    const credentials = db.get('credentials').value();
+    const settings = db.get('settings').value();
+
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      users,
+      pipelines,
+      credentials,
+      settings
+    };
+
+    res.setHeader('Content-Disposition', 'attachment; filename="giwi-cd-export.json"');
+    res.json(exportData);
+  } catch (error) {
+    sendError(res, 500, 'Failed to export data');
+  }
+});
+
 export default router;

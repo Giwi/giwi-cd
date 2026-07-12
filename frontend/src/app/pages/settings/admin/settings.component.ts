@@ -215,6 +215,37 @@ import { AdminSettings } from '../../../models/admin.types';
         </div>
       </div>
     </div>
+
+    <div class="row mt-4">
+      <div class="col-lg-6">
+        <div class="form-section">
+          <div class="form-section-title">
+            <i class="bi bi-download"></i>
+            Data Export
+          </div>
+          <p class="text-muted small mb-3">Export all settings, pipelines, credentials, and users as a JSON backup file.</p>
+
+          @if (exportMessage(); as msg) {
+            <div class="alert" [class]="msg.type === 'success' ? 'alert-success' : 'alert-danger'" style="margin-bottom: 1rem">
+              <i class="bi" [class]="msg.type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
+              {{ msg.text }}
+            </div>
+          }
+
+          <button 
+            class="btn btn-primary"
+            [disabled]="isExporting()"
+            (click)="exportData()"
+          >
+            @if (isExporting()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            <i class="bi bi-download me-1"></i>
+            Export Data
+          </button>
+        </div>
+      </div>
+    </div>
   `
 })
 export class SettingsComponent implements OnInit {
@@ -231,7 +262,9 @@ export class SettingsComponent implements OnInit {
   teamsDefaultChannel = '';
 
   isSaving = signal(false);
+  isExporting = signal(false);
   message = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  exportMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   ngOnInit(): void {
     this.loadSettings();
@@ -292,6 +325,29 @@ export class SettingsComponent implements OnInit {
       error: (err: any) => {
         this.isSaving.set(false);
         this.message.set({ type: 'error', text: err.error?.error || 'Failed to save settings' });
+      }
+    });
+  }
+
+  exportData(): void {
+    this.isExporting.set(true);
+    this.exportMessage.set(null);
+    this.adminService.exportData().subscribe({
+      next: (blob) => {
+        const date = new Date().toISOString().slice(0, 10);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `giwi-cd-export-${date}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.isExporting.set(false);
+        this.exportMessage.set({ type: 'success', text: 'Export downloaded successfully' });
+        setTimeout(() => this.exportMessage.set(null), 3000);
+      },
+      error: (err: any) => {
+        this.isExporting.set(false);
+        this.exportMessage.set({ type: 'error', text: err.error?.error || 'Failed to export data' });
       }
     });
   }

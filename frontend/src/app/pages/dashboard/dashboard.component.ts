@@ -3,13 +3,15 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
 import { ToastService } from '../../services/toast.service';
-import { DashboardData, Build, ApiResponse } from '../../models/types';
+import { DashboardData, ApiResponse } from '../../models/types';
 import { formatDuration, formatDate } from '../../utils/format';
+import { StatusChartComponent } from '../../components/charts/status-chart.component';
+import { DurationChartComponent } from '../../components/charts/duration-chart.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, StatusChartComponent, DurationChartComponent],
   template: `
      <div class="page-header">
        <div>
@@ -71,6 +73,29 @@ import { formatDuration, formatDate } from '../../utils/format';
         </div>
       </div>
 
+      <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header card-header-theme py-3">
+              <h5 class="mb-0">Build Duration (14 days)</h5>
+            </div>
+            <div class="card-body">
+              <app-duration-chart [dailyStats]="data()?.dailyStats || []" />
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header card-header-theme py-3">
+              <h5 class="mb-0">Build Status (14 days)</h5>
+            </div>
+            <div class="card-body">
+              <app-status-chart [dailyStats]="data()?.dailyStats || []" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="row g-4">
         <div class="col-lg-8">
           <div class="card border-0 shadow-sm">
@@ -119,7 +144,7 @@ import { formatDuration, formatDate } from '../../utils/format';
         </div>
 
         <div class="col-lg-4">
-          <div class="card border-0 shadow-sm mb-4">
+          <div class="card border-0 shadow-sm">
             <div class="card-header card-header-theme py-3">
               <h5 class="mb-0">Pipeline Status</h5>
             </div>
@@ -138,20 +163,6 @@ import { formatDuration, formatDate } from '../../utils/format';
               </div>
             </div>
           </div>
-
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header card-header-theme py-3">
-              <h5 class="mb-0">Builds by Status</h5>
-            </div>
-            <div class="card-body">
-              @for (status of buildStatusList; track status.key) {
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="badge-status status-{{ status.key }}">{{ status.label }}</span>
-                  <strong>{{ getStatusCount(status.key) }}</strong>
-                </div>
-              }
-            </div>
-          </div>
         </div>
       </div>
     }
@@ -161,14 +172,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   data = signal<DashboardData | null>(null);
   loading = signal(true);
   healthStatus = signal('checking');
-
-  buildStatusList = [
-    { key: 'running', label: 'Running' },
-    { key: 'success', label: 'Success' },
-    { key: 'failed', label: 'Failed' },
-    { key: 'pending', label: 'Pending' },
-    { key: 'cancelled', label: 'Cancelled' }
-  ];
 
   constructor(
     private api: ApiService,
@@ -207,12 +210,4 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   formatDuration = formatDuration;
   formatDate = formatDate;
-
-  getStatusCount(key: string): number {
-    const byStatus = this.data()?.builds?.byStatus;
-    if (byStatus) {
-      return (byStatus as Record<string, number>)[key] || 0;
-    }
-    return 0;
-  }
 }

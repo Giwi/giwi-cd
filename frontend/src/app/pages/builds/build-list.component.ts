@@ -1,16 +1,18 @@
-import { Component, OnInit, signal, computed, OnDestroy } from '@angular/core';
+import { Component, OnInit, signal, OnDestroy } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { WebSocketService } from '../../services/websocket.service';
-import { Build, Pipeline, ApiResponse, BuildStatus, WebSocketMessage } from '../../models/types';
+import { Build, Pipeline, ApiResponse } from '../../models/types';
 import { formatDuration, formatDate } from '../../utils/format';
 import { Subscription } from 'rxjs';
+import { StatusChartComponent } from '../../components/charts/status-chart.component';
+import { DurationChartComponent } from '../../components/charts/duration-chart.component';
 
 @Component({
   selector: 'app-build-list',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, StatusChartComponent, DurationChartComponent],
   template: `
     <div class="page-header">
       <div>
@@ -50,6 +52,29 @@ import { Subscription } from 'rxjs';
         </div>
       </div>
     } @else {
+      <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header card-header-theme py-3">
+              <h5 class="mb-0">Build Duration</h5>
+            </div>
+            <div class="card-body">
+              <app-duration-chart [builds]="builds()" />
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header card-header-theme py-3">
+              <h5 class="mb-0">Build Status Over Time</h5>
+            </div>
+            <div class="card-body">
+              <app-status-chart [builds]="builds()" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -107,7 +132,7 @@ import { Subscription } from 'rxjs';
     }
   `
 })
-export class BuildListComponent implements OnInit {
+export class BuildListComponent implements OnInit, OnDestroy {
   builds = signal<Build[]>([]);
   pipelines = signal<Pipeline[]>([]);
   loading = signal(true);
@@ -116,6 +141,8 @@ export class BuildListComponent implements OnInit {
   totalBuilds = signal(0);
   currentPage = 1;
   pageSize = 20;
+
+  private wsSubscription?: Subscription;
 
   constructor(
     private api: ApiService,
@@ -129,7 +156,7 @@ export class BuildListComponent implements OnInit {
       this.loadBuilds();
     });
     this.loadPipelines();
-    
+
     this.wsService.connect();
     this.wsSubscription = this.wsService.messages$.subscribe(msg => {
       if (msg.type === 'build:created' || msg.type === 'build:start' || msg.type === 'build:complete') {
@@ -142,8 +169,6 @@ export class BuildListComponent implements OnInit {
     this.wsSubscription?.unsubscribe();
     this.wsService.disconnect();
   }
-
-  private wsSubscription?: Subscription;
 
   loadBuilds(): void {
     this.loading.set(true);

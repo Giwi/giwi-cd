@@ -139,6 +139,45 @@ export class Build {
     };
   }
 
+  static getDailyStats(days = 14) {
+    const all = db.get('builds').value() as IBuild[];
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const recent = all.filter(b => new Date(b.createdAt) > cutoff);
+
+    const map: Record<string, { pending: number; running: number; success: number; failed: number; cancelled: number; durationSum: number; durationCount: number }> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      map[key] = { pending: 0, running: 0, success: 0, failed: 0, cancelled: 0, durationSum: 0, durationCount: 0 };
+    }
+
+    for (const b of recent) {
+      const key = new Date(b.createdAt).toISOString().slice(0, 10);
+      if (map[key]) {
+        if (b.status in map[key]) {
+          map[key][b.status as keyof typeof map[key]]++;
+        }
+        if (b.duration) {
+          map[key].durationSum += b.duration;
+          map[key].durationCount++;
+        }
+      }
+    }
+
+    return Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, counts]) => ({
+        date,
+        pending: counts.pending,
+        running: counts.running,
+        success: counts.success,
+        failed: counts.failed,
+        cancelled: counts.cancelled,
+        avgDuration: counts.durationCount ? Math.round(counts.durationSum / counts.durationCount) : 0
+      }));
+  }
+
   static delete(id: string): boolean {
     db.get('builds').remove({ id }).write();
     return true;

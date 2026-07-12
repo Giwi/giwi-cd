@@ -2,10 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AdminSettings, UserListItem } from '../models/admin.types';
 import { ApiService } from './api.service';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private api = inject(ApiService);
+  private http = inject(HttpClient);
 
   getSettings(): Observable<{ settings: AdminSettings }> {
     return this.api.get<{ settings: AdminSettings }>('/admin/settings');
@@ -33,5 +35,9 @@ export class AdminService {
 
   deleteUser(id: string): Observable<{ message: string }> {
     return this.api.delete<{ message: string }>(`/admin/users/${id}`);
+  }
+
+  exportData(): Observable<Blob> {
+    return this.http.get(`${this.api.baseUrl}/admin/export`, { responseType: 'blob' });
   }
 }
