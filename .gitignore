@@ -49,3 +49,4 @@ coverage/
 .cache/
 scripts
 backend/data
+.opencode/
