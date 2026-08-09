@@ -51,8 +51,8 @@ export class Build {
   }
 
   static getNextBuildNumber(pipelineId: string): number {
-    const builds = db.get('builds').filter({ pipelineId }).value();
-    return builds.length + 1;
+    const builds = db.get('builds').filter({ pipelineId }).value() as IBuild[];
+    return builds.reduce((max, b) => Math.max(max, b.number || 0), 0) + 1;
   }
 
   static findAll(filters: BuildFilters = {}): IBuild[] {

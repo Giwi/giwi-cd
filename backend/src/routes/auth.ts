@@ -45,6 +45,15 @@ router.post('/register', [
   }
 });
 
+router.get('/config', (_req: Request, res: Response) => {
+  try {
+    const settings = db.get('settings').value() as { allowRegistration?: boolean } | undefined;
+    res.json({ allowRegistration: settings?.allowRegistration === true });
+  } catch (error) {
+    sendError(res, 500, 'Failed to fetch config');
+  }
+});
+
 router.post('/login', [
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').notEmpty().withMessage('Password is required')

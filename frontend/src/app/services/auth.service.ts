@@ -73,6 +73,10 @@ export class AuthService {
     return null;
   }
 
+  getConfig(): Observable<{ allowRegistration: boolean }> {
+    return this.http.get<{ allowRegistration: boolean }>(`${this.apiUrl}/config`);
+  }
+
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap(response => {

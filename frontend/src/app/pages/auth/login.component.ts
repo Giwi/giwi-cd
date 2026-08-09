@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -69,9 +69,11 @@ import { AuthService } from '../../services/auth.service';
           </button>
         </form>
 
-        <div class="auth-footer">
-          <p>Don't have an account? <a routerLink="/register">Create one</a></p>
-        </div>
+        @if (registrationEnabled()) {
+          <div class="auth-footer">
+            <p>Don't have an account? <a routerLink="/register">Create one</a></p>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -158,7 +160,7 @@ import { AuthService } from '../../services/auth.service';
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -167,6 +169,13 @@ export class LoginComponent {
   password = '';
   isLoading = this.authService.isLoading;
   error = signal<string | null>(null);
+  registrationEnabled = signal(true);
+
+  ngOnInit(): void {
+    this.authService.getConfig().subscribe({
+      next: (config) => this.registrationEnabled.set(config.allowRegistration)
+    });
+  }
 
   onSubmit(): void {
     if (!this.email || !this.password) return;

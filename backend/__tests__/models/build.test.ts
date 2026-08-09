@@ -38,6 +38,15 @@ describe('Build Model', () => {
       expect(build3.number).toBe(1);
     });
 
+    it('should not reuse build numbers after cleanup', () => {
+      for (let i = 0; i < 12; i++) {
+        Build.create({ pipelineId: 'p1', pipelineName: 'P1' });
+      }
+      Build.cleanOldBuilds('p1', 10);
+      const next = Build.create({ pipelineId: 'p1', pipelineName: 'P1' });
+      expect(next.number).toBe(13);
+    });
+
     it('should accept custom values', () => {
       const build = Build.create({
         pipelineId: 'p1',

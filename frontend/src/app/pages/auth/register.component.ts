@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -198,6 +198,16 @@ export class RegisterComponent {
   confirmPassword = '';
   isLoading = this.authService.isLoading;
   error = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.authService.getConfig().subscribe({
+      next: (config) => {
+        if (!config.allowRegistration) {
+          this.router.navigate(['/login']);
+        }
+      }
+    });
+  }
 
   isFormValid(): boolean {
     return !!this.email && 

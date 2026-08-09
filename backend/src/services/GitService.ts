@@ -137,15 +137,22 @@ class GitService {
 
       const cmd = `git ${args.join(' ')} "${url}" "${targetDir}"`;
 
-      exec(cmd, { timeout: 300000 }, (error: ExecException | null, _stdout: string, _stderr: string) => {
-        if (error) {
-          emit('error', `❌ Git clone failed: ${error.message}`);
-          resolve({ success: false, error: error.message });
-        } else {
+      const execPromise = () => new Promise<void>((resolveExec, rejectExec) => {
+        exec(cmd, { timeout: 300000 }, (error: ExecException | null, _stdout: string, _stderr: string) => {
+          if (error) rejectExec(error);
+          else resolveExec();
+        });
+      });
+
+      retry(execPromise, { retryableErrors: ['EAGAIN', 'EMFILE', 'ENFILE', 'resource temporarily unavailable'] })
+        .then(() => {
           emit('success', `✅ Repository cloned successfully`);
           resolve({ success: true, workDir: targetDir });
-        }
-      });
+        })
+        .catch((error) => {
+          emit('error', `❌ Git clone failed: ${error.message}`);
+          resolve({ success: false, error: error.message });
+        });
     });
   }
 
@@ -156,32 +163,31 @@ class GitService {
       }
     };
 
-    return new Promise((resolve) => {
-      emit('info', `🔄 Fetching latest changes...`);
+    emit('info', `🔄 Fetching latest changes...`);
 
-      const fetchCmd = `git -C "${workDir}" fetch origin ${branch}`;
-      exec(fetchCmd, { timeout: 60000 }, (fetchErr: ExecException | null) => {
-        if (fetchErr) {
-          emit('warn', `⚠️ Git fetch failed: ${fetchErr.message}`);
-        }
-
-        const resetCmd = `git -C "${workDir}" reset --hard origin/${branch}`;
-        exec(resetCmd, { timeout: 30000 }, (resetErr: ExecException | null) => {
-          if (resetErr) {
-            emit('warn', `⚠️ Git reset failed, trying clean clone...`);
-            fs.rmSync(workDir, { recursive: true, force: true });
-            this._clone(buildId, authUrl, branch, workDir, _credentialId).then(resolve);
-            return;
-          }
-
-          const cleanCmd = `git -C "${workDir}" clean -fd`;
-          exec(cleanCmd, { timeout: 30000 }, () => {
-            emit('success', `✅ Repository updated to latest ${branch}`);
-            resolve({ success: true, workDir });
-          });
-        });
-      });
+    const retryable = { retryableErrors: ['EAGAIN', 'EMFILE', 'ENFILE', 'resource temporarily unavailable'] };
+    const execPromise = (cmd: string, timeout = 60000) => () => new Promise<void>((resolveExec, rejectExec) => {
+      exec(cmd, { timeout }, (err: ExecException | null) => err ? rejectExec(err) : resolveExec());
     });
+
+    try {
+      await retry(execPromise(`git -C "${workDir}" fetch origin ${branch}`), retryable);
+    } catch (fetchErr) {
+      emit('warn', `⚠️ Git fetch failed: ${(fetchErr as Error).message}`);
+    }
+
+    try {
+      await retry(execPromise(`git -C "${workDir}" reset --hard origin/${branch}`, 30000), retryable);
+    } catch (resetErr) {
+      emit('warn', `⚠️ Git reset failed, trying clean clone...`);
+      fs.rmSync(workDir, { recursive: true, force: true });
+      return this._clone(buildId, authUrl, branch, workDir, _credentialId);
+    }
+
+    await retry(execPromise(`git -C "${workDir}" clean -fd`, 30000), retryable).catch(() => undefined);
+
+    emit('success', `✅ Repository updated to latest ${branch}`);
+    return { success: true, workDir };
   }
 
   private _maskUrl(url: string): string {
