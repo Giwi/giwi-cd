@@ -47,7 +47,7 @@ async function executeStage(): Promise<boolean> {
     emit(level, message);
   });
   const notificationService = new NotificationService({
-    broadcast: (msg: Record<string, unknown>) => parentPort!.postMessage({ type: 'broadcast', ...msg })
+    broadcast: (msg: Record<string, unknown>) => parentPort!.postMessage({ type: 'broadcast', payload: msg })
   });
 
   const steps = stage.steps || [];

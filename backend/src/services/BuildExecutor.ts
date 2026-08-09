@@ -215,7 +215,7 @@ class BuildExecutor extends EventEmitter {
         } else if (msg.type === 'stageStatus') {
           Build.update(msg.buildId, { stages: Build.findById(msg.buildId)?.stages });
         } else if (msg.type === 'broadcast') {
-          this.wsManager.broadcast(msg as WSMessage);
+          this.wsManager.broadcast(msg.payload as WSMessage);
         } else if (msg.type === 'complete') {
           this.stageWorkers.delete(msg.buildId);
           resolve(msg.success);
