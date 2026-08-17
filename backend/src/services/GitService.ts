@@ -144,7 +144,7 @@ class GitService {
         });
       });
 
-      retry(execPromise, { retryableErrors: ['EAGAIN', 'EMFILE', 'ENFILE', 'resource temporarily unavailable'] })
+      retry(execPromise, { retryableErrors: ['EAGAIN', 'EMFILE', 'ENFILE', 'resource temporarily unavailable'], delayMs: 5000, maxAttempts: 5 })
         .then(() => {
           emit('success', `✅ Repository cloned successfully`);
           resolve({ success: true, workDir: targetDir });
@@ -165,7 +165,7 @@ class GitService {
 
     emit('info', `🔄 Fetching latest changes...`);
 
-    const retryable = { retryableErrors: ['EAGAIN', 'EMFILE', 'ENFILE', 'resource temporarily unavailable'] };
+    const retryable = { retryableErrors: ['EAGAIN', 'EMFILE', 'ENFILE', 'resource temporarily unavailable'], delayMs: 5000, maxAttempts: 5 };
     const execPromise = (cmd: string, timeout = 60000) => () => new Promise<void>((resolveExec, rejectExec) => {
       exec(cmd, { timeout }, (err: ExecException | null) => err ? rejectExec(err) : resolveExec());
     });
